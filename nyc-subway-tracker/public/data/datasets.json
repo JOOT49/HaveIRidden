@@ -1,0 +1,46 @@
+{
+  "rollingStock": [
+    { "model": "R62", "ranges": [[1301, 1390], [1601, 1625]], "division": "A" },
+    { "model": "R62A", "ranges": [[1651, 2150]], "division": "A" },
+    { "model": "R142", "ranges": [[6301, 6899]], "division": "A" },
+    { "model": "R142A", "ranges": [[7211, 7590]], "division": "A" },
+    { "model": "R188", "ranges": [[7811, 7936]], "division": "A" },
+
+    { "model": "R68", "ranges": [[2500, 2790]], "division": "B" },
+    { "model": "R68A", "ranges": [[5001, 5296]], "division": "B" },
+    { "model": "R160A", "ranges": [[8313, 8652]], "division": "B" },
+    { "model": "R160B", "ranges": [[8713, 9942]], "division": "B" },
+    { "model": "R179", "ranges": [[3010, 3327]], "division": "B" },
+    { "model": "R211A", "ranges": [[4000, 4399]], "division": "B" },
+    { "model": "R211T", "ranges": [[4040, 4099]], "division": "B" },
+    { "model": "R211S (Staten Island)", "ranges": [[100, 199]], "division": "SIR" }
+  ],
+
+  "lines": [
+    { "id": "1", "label": "1", "division": "A", "color": "#EE352E", "terminals": ["Van Cortlandt Park–242 St", "South Ferry"] },
+    { "id": "2", "label": "2", "division": "A", "color": "#EE352E", "terminals": ["Wakefield–241 St", "Flatbush Av–Brooklyn College"] },
+    { "id": "3", "label": "3", "division": "A", "color": "#EE352E", "terminals": ["Harlem–148 St", "New Lots Av"] },
+    { "id": "4", "label": "4", "division": "A", "color": "#00933C", "terminals": ["Woodlawn", "Crown Hts–Utica Av / New Lots Av"] },
+    { "id": "5", "label": "5", "division": "A", "color": "#00933C", "terminals": ["Eastchester–Dyre Av / Nereid Av", "Flatbush Av / Bowling Green"] },
+    { "id": "6", "label": "6", "division": "A", "color": "#00933C", "terminals": ["Pelham Bay Park", "Brooklyn Bridge–City Hall / Parkchester"] },
+    { "id": "7", "label": "7", "division": "A", "color": "#B933AD", "terminals": ["Flushing–Main St", "34 St–Hudson Yards"] },
+    { "id": "S", "label": "S", "division": "A", "color": "#808183", "terminals": ["Times Sq–42 St", "Grand Central–42 St"] },
+
+    { "id": "A", "label": "A", "division": "B", "color": "#2850AD", "terminals": ["Inwood–207 St", "Far Rockaway–Mott Ave / Lefferts Blvd / Rockaway Park"] },
+    { "id": "B", "label": "B", "division": "B", "color": "#FF6319", "terminals": ["Bedford Park Blvd", "Brighton Beach"] },
+    { "id": "C", "label": "C", "division": "B", "color": "#2850AD", "terminals": ["168 St", "Euclid Av"] },
+    { "id": "D", "label": "D", "division": "B", "color": "#FF6319", "terminals": ["Norwood–205 St", "Coney Island–Stillwell Av"] },
+    { "id": "E", "label": "E", "division": "B", "color": "#2850AD", "terminals": ["Jamaica Center–Parsons/Archer", "World Trade Center"] },
+    { "id": "F", "label": "F", "division": "B", "color": "#FF6319", "terminals": ["Jamaica–179 St / 21 St–Queensbridge", "Coney Island–Stillwell Av"] },
+    { "id": "G", "label": "G", "division": "B", "color": "#6CBE45", "terminals": ["Court Sq", "Church Av"] },
+    { "id": "J", "label": "J", "division": "B", "color": "#996633", "terminals": ["Jamaica Center–Parsons/Archer", "Broad St"] },
+    { "id": "Z", "label": "Z", "division": "B", "color": "#996633", "terminals": ["Jamaica Center–Parsons/Archer", "Broad St"] },
+    { "id": "L", "label": "L", "division": "B", "color": "#A7A9AC", "terminals": ["8 Av", "Canarsie–Rockaway Pkwy"] },
+    { "id": "M", "label": "M", "division": "B", "color": "#FF6319", "terminals": ["Forest Hills–71 Av / Middle Village–Metropolitan Av", "Delancey–Essex / 96 St (rush)"] },
+    { "id": "N", "label": "N", "division": "B", "color": "#FCCC0A", "terminals": ["Astoria–Ditmars Blvd", "Coney Island–Stillwell Av"] },
+    { "id": "Q", "label": "Q", "division": "B", "color": "#FCCC0A", "terminals": ["96 St", "Coney Island–Stillwell Av"] },
+    { "id": "R", "label": "R", "division": "B", "color": "#FCCC0A", "terminals": ["Forest Hills–71 Av", "Bay Ridge–95 St"] },
+    { "id": "W", "label": "W", "division": "B", "color": "#FCCC0A", "terminals": ["Astoria–Ditmars Blvd", "Whitehall St–South Ferry"] },
+    { "id": "SIR", "label": "SIR", "division": "SIR", "color": "#0039A6", "terminals": ["St George", "Tottenville"] }
+  ]
+}

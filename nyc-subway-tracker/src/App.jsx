@@ -1,22 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
-/**
- * NYC Subway Ride Tracker – 2-page React app
- * Pages: "Live Rider" and "Stats / Bulk Edit"
- * - Live Rider: input train car number, pick a line badge, auto-detect model, save to cookies
- * - Stats: view/edit rolling stock ranges and lines list; view, bulk edit, import/export ride history
- *
- * Notes
- * - Rides are stored in a cookie named `nyc_subway_rides` (JSON string, URI encoded)
- * - Datasets (rolling stock ranges & lines) are stored in localStorage so users can refine data
- * - Includes a "Prefill 2025 dataset" button to seed commonly used entries (you can edit later)
- * - Styling uses Tailwind utility classes available in this environment
- */
-
-// ----------------------------- Helpers -----------------------------
 const COOKIE_NAME = "nyc_subway_rides";
-const DATA_KEY = "nyc_subway_datasets_v1";
 
 function readRidesFromCookie() {
   try {
@@ -36,12 +21,9 @@ function readRidesFromCookie() {
 function writeRidesToCookie(rides) {
   try {
     const value = encodeURIComponent(JSON.stringify(rides));
-    // 400 days ~ max modern browsers allow; path=/ for site-wide
     const maxAge = 60 * 60 * 24 * 400;
     document.cookie = `${COOKIE_NAME}=${value}; Max-Age=${maxAge}; Path=/`;
-  } catch {
-    // no-op
-  }
+  } catch {}
 }
 
 function useCookieRides() {
@@ -50,102 +32,25 @@ function useCookieRides() {
   return [rides, setRides];
 }
 
-function loadDatasets() {
-  try {
-    const raw = localStorage.getItem(DATA_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveDatasets(ds) {
-  localStorage.setItem(DATA_KEY, JSON.stringify(ds));
-}
-
-// ----------------------------- Seed Data (editable) -----------------------------
-// NOTE: These are pragmatic, user-editable entries intended as a helpful starting point. 
-// NYC fleets/terminals do change; refine as you ride.
-function prefillDatasets() {
-  const datasets = {
-    rollingStock: [
-      // A Division (IRT, numbered lines)
-      { model: "R62", ranges: [[1301, 1390], [1601, 1625]], division: "A" },
-      { model: "R62A", ranges: [[1651, 2150]], division: "A" },
-      { model: "R142", ranges: [[6301, 6899]], division: "A" },
-      { model: "R142A", ranges: [[7211, 7590]], division: "A" },
-      { model: "R188", ranges: [[7811, 7936]], division: "A" },
-      // B Division (IND/BMT, lettered lines)
-      { model: "R68", ranges: [[2500, 2790]], division: "B" },
-      { model: "R68A", ranges: [[5001, 5296]], division: "B" },
-      { model: "R160A", ranges: [[8313, 8652]], division: "B" },
-      { model: "R160B", ranges: [[8713, 9942]], division: "B" },
-      { model: "R179", ranges: [[3010, 3327]], division: "B" },
-      { model: "R211A", ranges: [[4000, 4399]], division: "B" },
-      { model: "R211S (Staten Island)", ranges: [[100, 199]], division: "SIR" },
-    ],
-    lines: [
-      // A Division
-      { id: "1", label: "1", division: "A", color: "#EE352E", terminals: ["Van Cortlandt Park–242 St", "South Ferry"] },
-      { id: "2", label: "2", division: "A", color: "#EE352E", terminals: ["Wakefield–241 St", "Flatbush Av–Bklyn College"] },
-      { id: "3", label: "3", division: "A", color: "#EE352E", terminals: ["Harlem–148 St", "New Lots Av"] },
-      { id: "4", label: "4", division: "A", color: "#00933C", terminals: ["Woodlawn", "Crown Hts–Utica Av / New Lots Av"] },
-      { id: "5", label: "5", division: "A", color: "#00933C", terminals: ["Eastchester–Dyre Av / Nereid Av", "Flatbush Av / Bowling Green"] },
-      { id: "6", label: "6", division: "A", color: "#00933C", terminals: ["Pelham Bay Park", "Brooklyn Bridge–City Hall / Parkchester"] },
-      { id: "7", label: "7", division: "A", color: "#B933AD", terminals: ["Flushing–Main St", "34 St–Hudson Yards"] },
-      { id: "S", label: "S", division: "A", color: "#808183", terminals: ["Times Sq–42 St", "Grand Central–42 St"] },
-
-      // B Division
-      { id: "A", label: "A", division: "B", color: "#2850AD", terminals: ["Inwood–207 St", "Far Rockaway–Mott Ave / Lefferts Blvd / Rockaway Park"] },
-      { id: "B", label: "B", division: "B", color: "#FF6319", terminals: ["Bedford Park Blvd", "Brighton Beach"] },
-      { id: "C", label: "C", division: "B", color: "#2850AD", terminals: ["168 St", "Euclid Av"] },
-      { id: "D", label: "D", division: "B", color: "#FF6319", terminals: ["Norwood–205 St", "Coney Island–Stillwell Av"] },
-      { id: "E", label: "E", division: "B", color: "#2850AD", terminals: ["Jamaica Center–Parsons/Archer", "World Trade Center"] },
-      { id: "F", label: "F", division: "B", color: "#FF6319", terminals: ["Jamaica–179 St / 21 St–Queensbridge", "Coney Island–Stillwell Av"] },
-      { id: "G", label: "G", division: "B", color: "#6CBE45", terminals: ["Court Sq", "Church Av"] },
-      { id: "J", label: "J", division: "B", color: "#996633", terminals: ["Jamaica Center–Parsons/Archer", "Broad St"] },
-      { id: "Z", label: "Z", division: "B", color: "#996633", terminals: ["Jamaica Center–Parsons/Archer", "Broad St"] },
-      { id: "L", label: "L", division: "B", color: "#A7A9AC", terminals: ["8 Av", "Canarsie–Rockaway Pkwy"] },
-      { id: "M", label: "M", division: "B", color: "#FF6319", terminals: ["Forest Hills–71 Av / Middle Village–Metropolitan Av", "Delancey–Essex / 96 St (rush)"] },
-      { id: "N", label: "N", division: "B", color: "#FCCC0A", terminals: ["Astoria–Ditmars Blvd", "Coney Island–Stillwell Av"] },
-      { id: "Q", label: "Q", division: "B", color: "#FCCC0A", terminals: ["96 St", "Coney Island–Stillwell Av"] },
-      { id: "R", label: "R", division: "B", color: "#FCCC0A", terminals: ["Forest Hills–71 Av", "Bay Ridge–95 St"] },
-      { id: "W", label: "W", division: "B", color: "#FCCC0A", terminals: ["Astoria–Ditmars Blvd", "Whitehall St–South Ferry"] },
-      { id: "SIR", label: "SIR", division: "SIR", color: "#0039A6", terminals: ["St George", "Tottenville"] },
-    ],
-  };
-  saveDatasets(datasets);
-  return datasets;
-}
-
-function getDatasets() {
-  return loadDatasets() || prefillDatasets();
-}
-
-// Determine model by 4-digit/3-digit car number, using dataset ranges
 function detectModelFromNumber(numStr, rollingStock) {
   const n = parseInt(numStr, 10);
   if (Number.isNaN(n)) return null;
   for (const entry of rollingStock) {
     for (const [lo, hi] of entry.ranges) {
-      if (n >= lo && n <= hi) {
-        return { model: entry.model, division: entry.division };
-      }
+      if (n >= lo && n <= hi) return { model: entry.model, division: entry.division };
     }
   }
   return null;
 }
 
-// ----------------------------- UI Bits -----------------------------
 function Badge({ label, color, selected, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white shadow ${
-        selected ? "ring-4 ring-white/80 scale-105" : "hover:scale-[1.03]"
-      } transition`} 
+      className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white transition-all ${
+        selected ? "ring-4 ring-white/70 scale-110" : "hover:scale-105"
+      }`}
       style={{ backgroundColor: color }}
-      title={label}
     >
       {label}
     </button>
@@ -154,49 +59,47 @@ function Badge({ label, color, selected, onClick }) {
 
 function Section({ title, children, actions }) {
   return (
-    <div className="bg-white/70 backdrop-blur rounded-2xl shadow p-5 border border-black/5">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="bg-neutral-800/70 border border-neutral-700 rounded-2xl p-5 shadow-lg shadow-black/30 w-full max-w-5xl"
+    >
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xl font-semibold">{title}</h2>
-        <div className="flex gap-2">{actions}</div>
+        <h2 className="text-lg font-semibold text-white tracking-wide">{title}</h2>
+        {actions && <div className="flex gap-2">{actions}</div>}
       </div>
       {children}
-    </div>
+    </motion.div>
   );
 }
 
-function TopNav({ page, setPage }) {
-  const tabs = [
-    { key: "live", label: "Live Rider" },
-    { key: "stats", label: "Stats / Bulk Edit" },
-  ];
-  return (
-    <div className="flex gap-2 p-1 bg-white/60 backdrop-blur rounded-full shadow border border-black/5">
-      {tabs.map((t) => (
-        <button
-          key={t.key}
-          onClick={() => setPage(t.key)}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-            page === t.key ? "bg-black text-white" : "hover:bg-black/5"
-          }`}
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
-  );
+// Map approximate build years → gradient colors
+const MODEL_GRADIENTS = {
+  R32: ["from-[#7f1d1d]", "to-[#ef4444]"],
+  R46: ["from-[#9a3412]", "to-[#f97316]"],
+  R62: ["from-[#92400e]", "to-[#f59e0b]"],
+  R68: ["from-[#78350f]", "to-[#fbbf24]"],
+  R142: ["from-[#0e7490]", "to-[#06b6d4]"],
+  R160: ["from-[#0284c7]", "to-[#38bdf8]"],
+  R188: ["from-[#0d9488]", "to-[#34d399]"],
+  R211: ["from-[#16a34a]", "to-[#86efac]"],
+};
+
+function getGradientForModel(model) {
+  return MODEL_GRADIENTS[model] || ["from-gray-700", "to-gray-500"];
 }
 
-// ----------------------------- Pages -----------------------------
 function LiveRider({ datasets, onAddRide }) {
   const [trainNumber, setTrainNumber] = useState("");
   const [selectedLine, setSelectedLine] = useState(null);
   const [result, setResult] = useState(null);
 
-  const lineGrid = useMemo(() => datasets.lines, [datasets]);
+  const lineGrid = useMemo(() => datasets?.lines || [], [datasets]);
+  const found = detectModelFromNumber(trainNumber, datasets.rollingStock);
 
   function handleDetect() {
     if (!trainNumber || !selectedLine) return;
-    const found = detectModelFromNumber(trainNumber, datasets.rollingStock);
     const model = found?.model || "Unknown";
     const division = found?.division || "?";
     const ride = {
@@ -214,20 +117,19 @@ function LiveRider({ datasets, onAddRide }) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <Section title="Enter Train Info">
-        <div className="space-y-4">
-          <label className="block text-sm font-medium">Train car number</label>
+    <div className="pt-6 px-4 sm:px-8 space-y-5 max-w-2xl mx-auto">
+      <Section title="Live Rider Mode">
+        <div className="space-y-5">
           <input
-            className="w-full border rounded-xl px-4 py-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-black"
-            placeholder="e.g., 8778"
+            className="w-full bg-neutral-900 text-white border border-neutral-700 rounded-xl px-4 py-3 text-xl text-center font-semibold shadow-inner focus:outline-none focus:ring-2 focus:ring-white"
+            placeholder="Enter train car number (e.g. 8778)"
             inputMode="numeric"
             value={trainNumber}
             onChange={(e) => setTrainNumber(e.target.value.replace(/[^0-9]/g, ""))}
           />
 
-          <label className="block text-sm font-medium mt-2">Line</label>
-          <div className="grid grid-cols-8 gap-2">
+          <div className="text-center text-white/70 text-sm">Select the line you’re on</div>
+          <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 justify-center">
             {lineGrid.map((l) => (
               <Badge
                 key={l.id}
@@ -239,378 +141,315 @@ function LiveRider({ datasets, onAddRide }) {
             ))}
           </div>
 
+          <AnimatePresence>
+            {trainNumber && selectedLine && (
+              <motion.div
+                key="preview"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.4 }}
+                className="text-center mt-3"
+              >
+                <p className="text-4xl sm:text-5xl font-extrabold text-white drop-shadow-lg">
+                  You’re riding an{" "}
+                  <span className="text-green-400">{found?.model || "Unknown"}</span>
+                </p>
+                <p className="text-xl text-white/70 mt-1">
+                  on the <span style={{ color: selectedLine.color }}>{selectedLine.label}</span> line 🚇
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <button
             onClick={handleDetect}
             disabled={!trainNumber || !selectedLine}
-            className="mt-4 w-full bg-black text-white rounded-xl py-3 font-semibold shadow hover:opacity-90 disabled:opacity-40"
+            className="w-full bg-white text-black rounded-xl py-3 mt-3 text-lg font-semibold hover:bg-neutral-200 transition disabled:opacity-40"
           >
             Log Ride
           </button>
+        </div>
+      </Section>
 
-          <p className="text-xs text-black/60 mt-2">
-            Rides are stored in a cookie named <code>{COOKIE_NAME}</code>. Datasets are editable in the Stats page.
+      {result && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-neutral-800/70 border border-neutral-700 rounded-2xl p-5 text-white text-center shadow-lg"
+        >
+          <p className="text-lg">✅ Ride logged successfully!</p>
+          <p className="text-sm text-white/70 mt-1">
+            {result.model} on {result.line}
           </p>
-        </div>
-      </Section>
-
-      <Section title="Result & Tips">
-        {!result ? (
-          <p className="text-black/60">Enter a train number and choose a line to detect the model and save the ride.</p>
-        ) : (
-          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4">
-            <Badge label={result.line} color={result.lineColor} />
-            <div>
-              <div className="text-lg font-semibold">{result.model}</div>
-              <div className="text-black/60 text-sm">Division: {result.division}</div>
-              <div className="text-black/60 text-sm">Logged: {new Date(result.timestamp).toLocaleString()}</div>
-            </div>
-          </motion.div>
-        )}
-        <ul className="list-disc pl-5 mt-4 text-sm text-black/70 space-y-1">
-          <li>If a model shows as <em>Unknown</em>, add or adjust ranges under Rolling Stock on the Stats page.</li>
-          <li>Car numbers are typically 3–4 digits; SIR uses 3 digits (100–199).</li>
-          <li>You can export your ride history as JSON from the Stats page.</li>
-        </ul>
-      </Section>
-
-      <Section title="Recent Rides (Cookie)">
-        <RecentRidesMini />
-      </Section>
-    </div>
-  );
-}
-
-function RecentRidesMini() {
-  const [rides, setRides] = useCookieRides();
-  const lastTen = [...rides].reverse().slice(0, 8);
-  return (
-    <div className="space-y-2">
-      {lastTen.length === 0 && (
-        <div className="text-black/60">No rides yet.</div>
+        </motion.div>
       )}
-      {lastTen.map((r) => (
-        <div key={r.id} className="flex items-center gap-3 p-2 bg-white rounded-xl border border-black/5 shadow-sm">
-          <Badge label={r.line} color={r.lineColor} />
-          <div className="text-sm">
-            <div className="font-medium">{r.model} • #{r.trainNumber}</div>
-            <div className="text-black/60">{new Date(r.timestamp).toLocaleString()}</div>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
 
-function StatsPage({ datasets, setDatasets }) {
+function RideManager({ datasets }) {
   const [rides, setRides] = useCookieRides();
+  const [hideRidden, setHideRidden] = useState(false);
+  const [hideUnridden, setHideUnridden] = useState(false);
 
-  function exportRides() {
-    const blob = new Blob([JSON.stringify(rides, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `nyc-rides-${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+  const riddenModels = new Set(rides.map((r) => r.model));
+  const riddenLines = new Set(rides.map((r) => r.line));
 
   function clearRides() {
-    if (!confirm("Delete ALL rides from cookies?")) return;
-    setRides([]);
+    if (confirm("Are you sure you want to delete all rides?")) setRides([]);
   }
 
-  function addStock() {
-    setDatasets({
-      ...datasets,
-      rollingStock: [...datasets.rollingStock, { model: "New Model", ranges: [[0, 0]], division: "A" }],
-    });
-  }
-
-  function addLine() {
-    setDatasets({
-      ...datasets,
-      lines: [...datasets.lines, { id: "X", label: "X", division: "B", color: "#000000", terminals: ["Terminus A", "Terminus B"] }],
-    });
-  }
-
-  function prefill() {
-    const seeded = prefillDatasets();
-    setDatasets(seeded);
-  }
-
-  function updateStock(idx, field, value) {
-    const next = { ...datasets };
-    next.rollingStock = datasets.rollingStock.map((s, i) =>
-      i === idx ? { ...s, [field]: value } : s
-    );
-    setDatasets(next);
-  }
-
-  function updateStockRange(idx, rIdx, which, value) {
-    const v = parseInt(value || "0", 10);
-    const next = { ...datasets };
-    next.rollingStock = datasets.rollingStock.map((s, i) => {
-      if (i !== idx) return s;
-      const ranges = s.ranges.map((r, j) => (j === rIdx ? [which === 0 ? v : r[0], which === 1 ? v : r[1]] : r));
-      return { ...s, ranges };
-    });
-    setDatasets(next);
-  }
-
-  function addRange(idx) {
-    const next = { ...datasets };
-    next.rollingStock[idx].ranges = [...next.rollingStock[idx].ranges, [0, 0]];
-    setDatasets(next);
-  }
-
-  function removeStock(idx) {
-    const next = { ...datasets };
-    next.rollingStock = datasets.rollingStock.filter((_, i) => i !== idx);
-    setDatasets(next);
-  }
-
-  function updateLine(idx, field, value) {
-    const next = { ...datasets };
-    next.lines = datasets.lines.map((l, i) => (i === idx ? { ...l, [field]: value } : l));
-    setDatasets(next);
-  }
-
-  function removeLine(idx) {
-    const next = { ...datasets };
-    next.lines = datasets.lines.filter((_, i) => i !== idx);
-    setDatasets(next);
-  }
-
-  function save() {
-    saveDatasets(datasets);
-    alert("Datasets saved to localStorage.");
-  }
-
-  function importRides(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(String(reader.result));
-        if (!Array.isArray(parsed)) throw new Error("Expected an array of rides");
-        setRides(parsed);
-        alert("Imported rides into cookie.");
-      } catch (err) {
-        alert("Invalid JSON: " + err.message);
-      }
-    };
-    reader.readAsText(file);
-  }
-
-  return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      <Section
-        title="Rolling Stock (Editable)"
-        actions={
-          <div className="flex gap-2">
-            <button onClick={addStock} className="px-3 py-2 rounded-lg bg-black text-white text-sm">Add Model</button>
-            <button onClick={prefill} className="px-3 py-2 rounded-lg bg-black/80 text-white text-sm">Prefill 2025 dataset</button>
-            <button onClick={save} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">Save</button>
-          </div>
-        }
-      >
-        <div className="space-y-3 max-h-[60vh] overflow-auto pr-1">
-          {datasets.rollingStock.map((s, idx) => (
-            <div key={idx} className="p-3 rounded-xl border bg-white shadow-sm">
-              <div className="flex gap-3 items-center">
-                <input
-                  className="border rounded-lg px-3 py-2 w-40"
-                  value={s.model}
-                  onChange={(e) => updateStock(idx, "model", e.target.value)}
-                />
-                <select
-                  className="border rounded-lg px-3 py-2"
-                  value={s.division}
-                  onChange={(e) => updateStock(idx, "division", e.target.value)}
-                >
-                  <option>A</option>
-                  <option>B</option>
-                  <option>SIR</option>
-                </select>
-                <button onClick={() => addRange(idx)} className="ml-auto text-sm px-2 py-1 bg-black text-white rounded-lg">Add Range</button>
-                <button onClick={() => removeStock(idx)} className="text-sm px-2 py-1 bg-red-600 text-white rounded-lg">Delete</button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-                {s.ranges.map((r, rIdx) => (
-                  <div key={rIdx} className="flex items-center gap-2">
-                    <span className="text-xs text-black/60">Range {rIdx + 1}</span>
-                    <input className="border rounded px-2 py-1 w-24" value={r[0]} onChange={(e) => updateStockRange(idx, rIdx, 0, e.target.value)} />
-                    <span>–</span>
-                    <input className="border rounded px-2 py-1 w-24" value={r[1]} onChange={(e) => updateStockRange(idx, rIdx, 1, e.target.value)} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section
-        title="Subway Lines (Editable)"
-        actions={
-          <div className="flex gap-2">
-            <button onClick={addLine} className="px-3 py-2 rounded-lg bg-black text-white text-sm">Add Line</button>
-            <button onClick={save} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">Save</button>
-          </div>
-        }
-      >
-        <div className="space-y-3 max-h-[60vh] overflow-auto pr-1">
-          {datasets.lines.map((l, idx) => (
-            <div key={idx} className="p-3 rounded-xl border bg-white shadow-sm">
-              <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex items-center gap-2">
-                  <Badge label={l.label} color={l.color} />
-                </div>
-                <input className="border rounded px-3 py-2 w-20" value={l.id} onChange={(e) => updateLine(idx, "id", e.target.value)} />
-                <input className="border rounded px-3 py-2 w-24" value={l.label} onChange={(e) => updateLine(idx, "label", e.target.value)} />
-                <select className="border rounded px-3 py-2" value={l.division} onChange={(e) => updateLine(idx, "division", e.target.value)}>
-                  <option>A</option>
-                  <option>B</option>
-                  <option>SIR</option>
-                </select>
-                <input className="border rounded px-3 py-2 w-36" value={l.color} onChange={(e) => updateLine(idx, "color", e.target.value)} />
-                <input className="border rounded px-3 py-2 flex-1" value={l.terminals[0]} onChange={(e) => updateLine(idx, "terminals", [e.target.value, l.terminals[1]])} />
-                <input className="border rounded px-3 py-2 flex-1" value={l.terminals[1]} onChange={(e) => updateLine(idx, "terminals", [l.terminals[0], e.target.value])} />
-                <button onClick={() => removeLine(idx)} className="text-sm px-2 py-1 bg-red-600 text-white rounded-lg ml-auto">Delete</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section
-        title="Ride History (Cookie)"
-        actions={
-          <div className="flex gap-2">
-            <button onClick={exportRides} className="px-3 py-2 rounded-lg bg-black text-white text-sm">Export JSON</button>
-            <label className="px-3 py-2 rounded-lg bg-black/80 text-white text-sm cursor-pointer">
-              Import JSON
-              <input type="file" accept="application/json" className="hidden" onChange={importRides} />
-            </label>
-            <button onClick={clearRides} className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm">Clear All</button>
-          </div>
-        }
-      >
-        <RideTable rides={rides} setRides={setRides} />
-      </Section>
-    </div>
-  );
-}
-
-function RideTable({ rides, setRides }) {
-  const [query, setQuery] = useState("");
-  const filtered = rides.filter((r) => {
-    const q = query.toLowerCase();
-    return (
-      r.trainNumber?.toLowerCase().includes(q) ||
-      r.model?.toLowerCase().includes(q) ||
-      r.line?.toLowerCase().includes(q)
-    );
+  const filteredModels = datasets.rollingStock.filter((s) => {
+    if (hideRidden && riddenModels.has(s.model)) return false;
+    if (hideUnridden && !riddenModels.has(s.model)) return false;
+    return true;
   });
 
-  function deleteRide(id) {
-    setRides(rides.filter((r) => r.id !== id));
-  }
+  const filteredLines = datasets.lines.filter((l) => {
+    if (hideRidden && riddenLines.has(l.id)) return false;
+    if (hideUnridden && !riddenLines.has(l.id)) return false;
+    return true;
+  });
 
-  function clearFilter() {
-    setQuery("");
-  }
+  const modelProgress = (riddenModels.size / datasets.rollingStock.length) * 100;
+  const lineProgress = (riddenLines.size / datasets.lines.length) * 100;
 
   return (
-    <div>
-      <div className="flex gap-2 mb-3">
-        <input
-          className="border rounded-xl px-3 py-2 flex-1"
-          placeholder="Filter by line, model, or number"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <button onClick={clearFilter} className="px-3 py-2 rounded-lg bg-black text-white text-sm">Reset</button>
-      </div>
-
-      <div className="overflow-auto max-h-[50vh] rounded-xl border">
-        <table className="min-w-full text-sm">
-          <thead className="bg-black text-white sticky top-0">
-            <tr>
-              <th className="text-left p-2">Time</th>
-              <th className="text-left p-2">Line</th>
-              <th className="text-left p-2">Car #</th>
-              <th className="text-left p-2">Model</th>
-              <th className="text-left p-2">Division</th>
-              <th className="text-left p-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 && (
+    <div className="pt-6 px-4 sm:px-8 flex flex-col items-center text-center space-y-8">
+      <Section
+        title="Ride History"
+        actions={
+          <button
+            onClick={clearRides}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
+          >
+            Clear All
+          </button>
+        }
+      >
+        <div className="overflow-auto max-h-[55vh] rounded-xl border border-neutral-700">
+          <table className="min-w-full text-sm text-white/80">
+            <thead className="bg-neutral-900 text-white">
               <tr>
-                <td colSpan={6} className="p-4 text-center text-black/60">No rides match.</td>
+                <th className="p-2 text-left">Time</th>
+                <th className="p-2 text-left">Line</th>
+                <th className="p-2 text-left">Car #</th>
+                <th className="p-2 text-left">Model</th>
               </tr>
-            )}
-            {filtered.map((r) => (
-              <tr key={r.id} className="odd:bg-white even:bg-black/5">
-                <td className="p-2">{new Date(r.timestamp).toLocaleString()}</td>
-                <td className="p-2">
-                  <div className="flex items-center gap-2">
-                    <Badge label={r.line} color={r.lineColor} />
-                    <span>{r.line}</span>
-                  </div>
-                </td>
-                <td className="p-2">#{r.trainNumber}</td>
-                <td className="p-2">{r.model}</td>
-                <td className="p-2">{r.division}</td>
-                <td className="p-2">
-                  <button onClick={() => deleteRide(r.id)} className="px-2 py-1 bg-red-600 text-white rounded-lg text-xs">Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rides.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="p-5 text-center text-neutral-400">
+                    No rides logged yet.
+                  </td>
+                </tr>
+              )}
+              {rides.map((r) => (
+                <tr key={r.id} className="odd:bg-neutral-800 even:bg-neutral-850 hover:bg-neutral-700 transition">
+                  <td className="p-2">{new Date(r.timestamp).toLocaleString()}</td>
+                  <td className="p-2 flex items-center gap-2 justify-center">
+                    <Badge label={r.line} color={r.lineColor} /> {r.line}
+                  </td>
+                  <td className="p-2">#{r.trainNumber}</td>
+                  <td className="p-2">{r.model}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+
+      <Section title="Your Progress">
+        <div className="flex gap-4 items-center justify-center mb-4">
+          <label className="flex items-center gap-2 text-white/80">
+            <input
+              type="checkbox"
+              checked={hideRidden}
+              onChange={(e) => setHideRidden(e.target.checked)}
+              className="w-4 h-4 accent-green-500"
+            />
+            Hide ridden
+          </label>
+          <label className="flex items-center gap-2 text-white/80">
+            <input
+              type="checkbox"
+              checked={hideUnridden}
+              onChange={(e) => setHideUnridden(e.target.checked)}
+              className="w-4 h-4 accent-green-500"
+            />
+            Hide un-ridden
+          </label>
+        </div>
+
+        <div className="space-y-10 w-full">
+          {/* Train Models */}
+          <div>
+            <h3 className="font-semibold text-white/80 text-lg mb-2">
+              Train Models ({riddenModels.size}/{datasets.rollingStock.length})
+            </h3>
+            <motion.div className="w-full bg-neutral-700 rounded-full h-2 mb-4 overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${modelProgress}%` }}
+                transition={{ duration: 0.6 }}
+                className="h-2 bg-green-500 rounded-full"
+              />
+            </motion.div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredModels.map((s) => {
+                const [from, to] = getGradientForModel(s.model);
+                const ridden = riddenModels.has(s.model);
+                return (
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    key={s.model}
+                    className={`p-4 rounded-xl font-medium shadow-md border border-neutral-700 text-white cursor-pointer ${
+                      ridden ? "opacity-90" : "opacity-100"
+                    }`}
+                    style={{
+                      backgroundImage: `linear-gradient(135deg, var(--tw-gradient-stops))`,
+                    }}
+                  >
+                    <div className={`bg-gradient-to-br ${from} ${to} rounded-xl p-4`}>
+                      <div className="flex justify-between items-center">
+                        <span>{s.model}</span>
+                        <input
+                          type="checkbox"
+                          checked={ridden}
+                          readOnly
+                          className="w-5 h-5 accent-green-400"
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Subway Lines */}
+          <div>
+            <h3 className="font-semibold text-white/80 text-lg mb-2">
+              Subway Lines ({riddenLines.size}/{datasets.lines.length})
+            </h3>
+            <motion.div className="w-full bg-neutral-700 rounded-full h-2 mb-4 overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${lineProgress}%` }}
+                transition={{ duration: 0.6 }}
+                className="h-2 bg-green-500 rounded-full"
+              />
+            </motion.div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredLines.map((l) => {
+                const ridden = riddenLines.has(l.id);
+                return (
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    key={l.id}
+                    className={`p-4 rounded-xl border text-white font-medium ${
+                      ridden ? "opacity-90" : "opacity-100"
+                    }`}
+                    style={{
+                      borderColor: l.color,
+                      boxShadow: `0 0 10px ${l.color}55`,
+                    }}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Badge label={l.label} color={l.color} />
+                        <span>{l.label}</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={ridden}
+                        readOnly
+                        className="w-5 h-5 accent-green-400"
+                      />
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </Section>
     </div>
   );
 }
 
-// ----------------------------- Root App -----------------------------
 export default function App() {
   const [page, setPage] = useState("live");
-  const [datasets, setDatasets] = useState(getDatasets());
-
+  const [datasets, setDatasets] = useState(null);
   const [rides, setRides] = useCookieRides();
+
+  useEffect(() => {
+    fetch("/data/datasets.json")
+      .then((r) => r.json())
+      .then(setDatasets)
+      .catch((err) => console.error("Failed to load datasets", err));
+  }, []);
 
   function onAddRide(ride) {
     setRides([...rides, ride]);
   }
 
+  if (!datasets) return <div className="p-10 text-center text-neutral-400">Loading datasets…</div>;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 text-slate-900">
-      <header className="max-w-6xl mx-auto px-4 pt-8 pb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-black text-white grid place-items-center font-bold">NYC</div>
-          <div>
-            <h1 className="text-2xl font-bold">Subway Ride Tracker</h1>
-            <p className="text-sm text-black/60">Log rides in Live mode • Edit datasets and review history in Stats</p>
-          </div>
+    <div className="min-h-screen bg-neutral-900 text-neutral-100 font-sans">
+      <div className="fixed top-0 w-full backdrop-blur-lg bg-neutral-900/80 border-b border-neutral-800 shadow-md z-50 flex flex-col items-center py-3">
+        <div className="text-white text-lg font-semibold mb-2">NYC Subway Tracker 🚇</div>
+        <div className="flex gap-2 bg-neutral-800/80 rounded-full border border-neutral-700 p-1">
+          <button
+            onClick={() => setPage("live")}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+              page === "live" ? "bg-white text-black" : "text-white hover:bg-neutral-700"
+            }`}
+          >
+            Live Rider
+          </button>
+          <button
+            onClick={() => setPage("manager")}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+              page === "manager" ? "bg-white text-black" : "text-white hover:bg-neutral-700"
+            }`}
+          >
+            Stats
+          </button>
         </div>
-        <TopNav page={page} setPage={setPage} />
-      </header>
+      </div>
 
-      <main className="max-w-6xl mx-auto px-4 pb-12">
+      <AnimatePresence mode="wait">
         {page === "live" ? (
-          <LiveRider datasets={datasets} onAddRide={onAddRide} />
+          <motion.div
+            key="live"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <LiveRider datasets={datasets} onAddRide={onAddRide} />
+          </motion.div>
         ) : (
-          <StatsPage datasets={datasets} setDatasets={setDatasets} />
+          <motion.div
+            key="manager"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <RideManager datasets={datasets} />
+          </motion.div>
         )}
-      </main>
-
-      <footer className="max-w-6xl mx-auto px-4 pb-8 text-xs text-black/60">
-        This is a personal tracker. Fleet ranges and terminals can change; refine in Stats.
-      </footer>
+      </AnimatePresence>
     </div>
   );
 }
