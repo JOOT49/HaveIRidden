@@ -1,20 +1,19 @@
 {
   "rollingStock": [
-    { "model": "R62", "ranges": [[1301, 1390], [1601, 1625]], "division": "A" },
-    { "model": "R62A", "ranges": [[1651, 2150]], "division": "A" },
-    { "model": "R142", "ranges": [[6301, 6899]], "division": "A" },
-    { "model": "R142A", "ranges": [[7211, 7590]], "division": "A" },
-    { "model": "R188", "ranges": [[7811, 7936]], "division": "A" },
-
-    { "model": "R68", "ranges": [[2500, 2790]], "division": "B" },
-    { "model": "R68A", "ranges": [[5001, 5296]], "division": "B" },
-    { "model": "R160A", "ranges": [[8313, 8652]], "division": "B" },
-    { "model": "R160B", "ranges": [[8713, 9942]], "division": "B" },
+    { "model": "R142", "ranges": [[1101, 1250], [6300, 7180]], "division": "A" },
+    { "model": "R62", "ranges": [[1301, 1625]], "division": "A" },
+    { "model": "R62A", "ranges": [[1651, 2475]], "division": "A" },
+    { "model": "R68", "ranges": [[2500, 2924]], "division": "B" },
     { "model": "R179", "ranges": [[3010, 3327]], "division": "B" },
-    { "model": "R211A", "ranges": [[4000, 4399]], "division": "B" },
-    { "model": "R211T", "ranges": [[4040, 4099]], "division": "B" },
-    { "model": "R211S (Staten Island)", "ranges": [[100, 199]], "division": "SIR" }
-  ],
+    { "model": "R211A", "ranges": [[3400, 4039], [4060, 4499]], "division": "B" },
+    { "model": "R211T", "ranges": [[4040, 4059]], "division": "B" },
+    { "model": "R68A", "ranges": [[5001, 5200]], "division": "B" },
+    { "model": "R46", "ranges": [[5482, 6258]], "division": "B" },
+    { "model": "R142 / R188", "ranges": [[7211, 7936]], "division": "A" },
+    { "model": "R143", "ranges": [[8101, 8312]], "division": "B" },
+    { "model": "R160", "ranges": [[8313, 9974]], "division": "B" }
+  ]
+
 
   "lines": [
     { "id": "1", "label": "1", "division": "A", "color": "#EE352E", "terminals": ["Van Cortlandt Park–242 St", "South Ferry"] },
