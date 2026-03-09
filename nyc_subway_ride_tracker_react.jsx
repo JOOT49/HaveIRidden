@@ -1,316 +1,607 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
-/**
- * NYC Subway Ride Tracker – 2-page React app
- * Pages: "Live Rider" and "Stats / Bulk Edit"
- * - Live Rider: input train car number, pick a line badge, auto-detect model, save to cookies
- * - Stats: view/edit rolling stock ranges and lines list; view, bulk edit, import/export ride history
- *
- * Notes
- * - Rides are stored in a cookie named `nyc_subway_rides` (JSON string, URI encoded)
- * - Datasets (rolling stock ranges & lines) are stored in localStorage so users can refine data
- * - Includes a "Prefill 2025 dataset" button to seed commonly used entries (you can edit later)
- * - Styling uses Tailwind utility classes available in this environment
- */
+/* ─────────────────────────────────────────────────────────────────
+   GLOBAL STYLES  (injected once into <head>)
+───────────────────────────────────────────────────────────────── */
+const GLOBAL_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap');
 
-// ----------------------------- Helpers -----------------------------
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --tunnel: #0a0a0f;
+    --surface: #13131a;
+    --card: #1c1c26;
+    --border: rgba(255,255,255,0.08);
+    --border-bright: rgba(255,255,255,0.18);
+    --text: #f0f0f4;
+    --muted: #8888a0;
+    --accent: #FCCC0A;
+    --accent-dark: #c9a400;
+    --danger: #EE352E;
+    --success: #00933C;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  html, body, #root {
+    height: 100%;
+    background: var(--tunnel);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* subway tile pattern background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+  input, select, textarea {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Barlow', sans-serif;
+    font-size: 1rem;
+    padding: 0.6rem 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(252,204,10,0.15); }
+  input::placeholder { color: var(--muted); }
+  select option { background: #1c1c26; }
+
+  button { cursor: pointer; font-family: 'Barlow', sans-serif; }
+
+  table { border-collapse: collapse; width: 100%; }
+  th { text-align: left; }
+
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`;
+
+function GlobalStyles() {
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = GLOBAL_CSS;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+  return null;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   DATA LAYER
+───────────────────────────────────────────────────────────────── */
 const COOKIE_NAME = "nyc_subway_rides";
 const DATA_KEY = "nyc_subway_datasets_v1";
 
 function readRidesFromCookie() {
   try {
-    const match = document.cookie
-      .split(";")
-      .map((c) => c.trim())
-      .find((c) => c.startsWith(`${COOKIE_NAME}=`));
+    const match = document.cookie.split(";").map(c => c.trim()).find(c => c.startsWith(`${COOKIE_NAME}=`));
     if (!match) return [];
-    const raw = decodeURIComponent(match.split("=")[1] || "");
-    const arr = JSON.parse(raw);
+    const arr = JSON.parse(decodeURIComponent(match.split("=")[1] || ""));
     return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function writeRidesToCookie(rides) {
   try {
     const value = encodeURIComponent(JSON.stringify(rides));
-    // 400 days ~ max modern browsers allow; path=/ for site-wide
-    const maxAge = 60 * 60 * 24 * 400;
-    document.cookie = `${COOKIE_NAME}=${value}; Max-Age=${maxAge}; Path=/`;
-  } catch {
-    // no-op
-  }
+    document.cookie = `${COOKIE_NAME}=${value}; Max-Age=${60 * 60 * 24 * 400}; Path=/`;
+  } catch {}
 }
 
 function useCookieRides() {
-  const [rides, setRides] = useState(readRidesFromCookie());
+  const [rides, setRides] = useState(readRidesFromCookie);
   useEffect(() => writeRidesToCookie(rides), [rides]);
   return [rides, setRides];
 }
 
 function loadDatasets() {
-  try {
-    const raw = localStorage.getItem(DATA_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  try { const r = localStorage.getItem(DATA_KEY); return r ? JSON.parse(r) : null; } catch { return null; }
 }
+function saveDatasets(ds) { localStorage.setItem(DATA_KEY, JSON.stringify(ds)); }
 
-function saveDatasets(ds) {
-  localStorage.setItem(DATA_KEY, JSON.stringify(ds));
-}
-
-// ----------------------------- Seed Data (editable) -----------------------------
-// NOTE: These are pragmatic, user-editable entries intended as a helpful starting point. 
-// NYC fleets/terminals do change; refine as you ride.
 function prefillDatasets() {
   const datasets = {
     rollingStock: [
-      // A Division (IRT, numbered lines)
-      { model: "R62", ranges: [[1301, 1390], [1601, 1625]], division: "A" },
-      { model: "R62A", ranges: [[1651, 2150]], division: "A" },
-      { model: "R142", ranges: [[6301, 6899]], division: "A" },
-      { model: "R142A", ranges: [[7211, 7590]], division: "A" },
-      { model: "R188", ranges: [[7811, 7936]], division: "A" },
-      // B Division (IND/BMT, lettered lines)
-      { model: "R68", ranges: [[2500, 2790]], division: "B" },
-      { model: "R68A", ranges: [[5001, 5296]], division: "B" },
-      { model: "R160A", ranges: [[8313, 8652]], division: "B" },
-      { model: "R160B", ranges: [[8713, 9942]], division: "B" },
-      { model: "R179", ranges: [[3010, 3327]], division: "B" },
-      { model: "R211A", ranges: [[4000, 4399]], division: "B" },
-      { model: "R211S (Staten Island)", ranges: [[100, 199]], division: "SIR" },
+      { model: "R62",  ranges: [[1301,1390],[1601,1625]], division: "A" },
+      { model: "R62A", ranges: [[1651,2150]],             division: "A" },
+      { model: "R142", ranges: [[6301,6899]],             division: "A" },
+      { model: "R142A",ranges: [[7211,7590]],             division: "A" },
+      { model: "R188", ranges: [[7811,7936]],             division: "A" },
+      { model: "R68",  ranges: [[2500,2790]],             division: "B" },
+      { model: "R68A", ranges: [[5001,5296]],             division: "B" },
+      { model: "R160A",ranges: [[8313,8652]],             division: "B" },
+      { model: "R160B",ranges: [[8713,9942]],             division: "B" },
+      { model: "R179", ranges: [[3010,3327]],             division: "B" },
+      { model: "R211A",ranges: [[4000,4399]],             division: "B" },
+      { model: "R211S (Staten Island)", ranges: [[100,199]], division: "SIR" },
     ],
     lines: [
-      // A Division
-      { id: "1", label: "1", division: "A", color: "#EE352E", terminals: ["Van Cortlandt Park–242 St", "South Ferry"] },
-      { id: "2", label: "2", division: "A", color: "#EE352E", terminals: ["Wakefield–241 St", "Flatbush Av–Bklyn College"] },
-      { id: "3", label: "3", division: "A", color: "#EE352E", terminals: ["Harlem–148 St", "New Lots Av"] },
-      { id: "4", label: "4", division: "A", color: "#00933C", terminals: ["Woodlawn", "Crown Hts–Utica Av / New Lots Av"] },
-      { id: "5", label: "5", division: "A", color: "#00933C", terminals: ["Eastchester–Dyre Av / Nereid Av", "Flatbush Av / Bowling Green"] },
-      { id: "6", label: "6", division: "A", color: "#00933C", terminals: ["Pelham Bay Park", "Brooklyn Bridge–City Hall / Parkchester"] },
-      { id: "7", label: "7", division: "A", color: "#B933AD", terminals: ["Flushing–Main St", "34 St–Hudson Yards"] },
-      { id: "S", label: "S", division: "A", color: "#808183", terminals: ["Times Sq–42 St", "Grand Central–42 St"] },
-
-      // B Division
-      { id: "A", label: "A", division: "B", color: "#2850AD", terminals: ["Inwood–207 St", "Far Rockaway–Mott Ave / Lefferts Blvd / Rockaway Park"] },
-      { id: "B", label: "B", division: "B", color: "#FF6319", terminals: ["Bedford Park Blvd", "Brighton Beach"] },
-      { id: "C", label: "C", division: "B", color: "#2850AD", terminals: ["168 St", "Euclid Av"] },
-      { id: "D", label: "D", division: "B", color: "#FF6319", terminals: ["Norwood–205 St", "Coney Island–Stillwell Av"] },
-      { id: "E", label: "E", division: "B", color: "#2850AD", terminals: ["Jamaica Center–Parsons/Archer", "World Trade Center"] },
-      { id: "F", label: "F", division: "B", color: "#FF6319", terminals: ["Jamaica–179 St / 21 St–Queensbridge", "Coney Island–Stillwell Av"] },
-      { id: "G", label: "G", division: "B", color: "#6CBE45", terminals: ["Court Sq", "Church Av"] },
-      { id: "J", label: "J", division: "B", color: "#996633", terminals: ["Jamaica Center–Parsons/Archer", "Broad St"] },
-      { id: "Z", label: "Z", division: "B", color: "#996633", terminals: ["Jamaica Center–Parsons/Archer", "Broad St"] },
-      { id: "L", label: "L", division: "B", color: "#A7A9AC", terminals: ["8 Av", "Canarsie–Rockaway Pkwy"] },
-      { id: "M", label: "M", division: "B", color: "#FF6319", terminals: ["Forest Hills–71 Av / Middle Village–Metropolitan Av", "Delancey–Essex / 96 St (rush)"] },
-      { id: "N", label: "N", division: "B", color: "#FCCC0A", terminals: ["Astoria–Ditmars Blvd", "Coney Island–Stillwell Av"] },
-      { id: "Q", label: "Q", division: "B", color: "#FCCC0A", terminals: ["96 St", "Coney Island–Stillwell Av"] },
-      { id: "R", label: "R", division: "B", color: "#FCCC0A", terminals: ["Forest Hills–71 Av", "Bay Ridge–95 St"] },
-      { id: "W", label: "W", division: "B", color: "#FCCC0A", terminals: ["Astoria–Ditmars Blvd", "Whitehall St–South Ferry"] },
-      { id: "SIR", label: "SIR", division: "SIR", color: "#0039A6", terminals: ["St George", "Tottenville"] },
+      { id:"1",   label:"1",   division:"A",   color:"#EE352E", textColor:"#fff", terminals:["Van Cortlandt Park–242 St","South Ferry"] },
+      { id:"2",   label:"2",   division:"A",   color:"#EE352E", textColor:"#fff", terminals:["Wakefield–241 St","Flatbush Av–Bklyn College"] },
+      { id:"3",   label:"3",   division:"A",   color:"#EE352E", textColor:"#fff", terminals:["Harlem–148 St","New Lots Av"] },
+      { id:"4",   label:"4",   division:"A",   color:"#00933C", textColor:"#fff", terminals:["Woodlawn","Crown Hts–Utica Av"] },
+      { id:"5",   label:"5",   division:"A",   color:"#00933C", textColor:"#fff", terminals:["Eastchester–Dyre Av","Flatbush Av"] },
+      { id:"6",   label:"6",   division:"A",   color:"#00933C", textColor:"#fff", terminals:["Pelham Bay Park","Brooklyn Bridge–City Hall"] },
+      { id:"7",   label:"7",   division:"A",   color:"#B933AD", textColor:"#fff", terminals:["Flushing–Main St","34 St–Hudson Yards"] },
+      { id:"A",   label:"A",   division:"B",   color:"#2850AD", textColor:"#fff", terminals:["Inwood–207 St","Far Rockaway / Lefferts Blvd"] },
+      { id:"B",   label:"B",   division:"B",   color:"#FF6319", textColor:"#fff", terminals:["Bedford Park Blvd","Brighton Beach"] },
+      { id:"C",   label:"C",   division:"B",   color:"#2850AD", textColor:"#fff", terminals:["168 St","Euclid Av"] },
+      { id:"D",   label:"D",   division:"B",   color:"#FF6319", textColor:"#fff", terminals:["Norwood–205 St","Coney Island–Stillwell Av"] },
+      { id:"E",   label:"E",   division:"B",   color:"#2850AD", textColor:"#fff", terminals:["Jamaica Center","World Trade Center"] },
+      { id:"F",   label:"F",   division:"B",   color:"#FF6319", textColor:"#fff", terminals:["Jamaica–179 St","Coney Island–Stillwell Av"] },
+      { id:"G",   label:"G",   division:"B",   color:"#6CBE45", textColor:"#fff", terminals:["Court Sq","Church Av"] },
+      { id:"J",   label:"J",   division:"B",   color:"#996633", textColor:"#fff", terminals:["Jamaica Center","Broad St"] },
+      { id:"Z",   label:"Z",   division:"B",   color:"#996633", textColor:"#fff", terminals:["Jamaica Center","Broad St"] },
+      { id:"L",   label:"L",   division:"B",   color:"#A7A9AC", textColor:"#fff", terminals:["8 Av","Canarsie–Rockaway Pkwy"] },
+      { id:"M",   label:"M",   division:"B",   color:"#FF6319", textColor:"#fff", terminals:["Forest Hills–71 Av","Delancey–Essex"] },
+      { id:"N",   label:"N",   division:"B",   color:"#FCCC0A", textColor:"#000", terminals:["Astoria–Ditmars Blvd","Coney Island–Stillwell Av"] },
+      { id:"Q",   label:"Q",   division:"B",   color:"#FCCC0A", textColor:"#000", terminals:["96 St","Coney Island–Stillwell Av"] },
+      { id:"R",   label:"R",   division:"B",   color:"#FCCC0A", textColor:"#000", terminals:["Forest Hills–71 Av","Bay Ridge–95 St"] },
+      { id:"W",   label:"W",   division:"B",   color:"#FCCC0A", textColor:"#000", terminals:["Astoria–Ditmars Blvd","Whitehall St"] },
+      { id:"S",   label:"S",   division:"A",   color:"#808183", textColor:"#fff", terminals:["Times Sq–42 St","Grand Central–42 St"] },
+      { id:"SIR", label:"SIR", division:"SIR", color:"#0039A6", textColor:"#fff", terminals:["St George","Tottenville"] },
     ],
   };
   saveDatasets(datasets);
   return datasets;
 }
 
-function getDatasets() {
-  return loadDatasets() || prefillDatasets();
-}
+function getDatasets() { return loadDatasets() || prefillDatasets(); }
 
-// Determine model by 4-digit/3-digit car number, using dataset ranges
 function detectModelFromNumber(numStr, rollingStock) {
   const n = parseInt(numStr, 10);
   if (Number.isNaN(n)) return null;
   for (const entry of rollingStock) {
     for (const [lo, hi] of entry.ranges) {
-      if (n >= lo && n <= hi) {
-        return { model: entry.model, division: entry.division };
-      }
+      if (n >= lo && n <= hi) return { model: entry.model, division: entry.division };
     }
   }
   return null;
 }
 
-// ----------------------------- UI Bits -----------------------------
-function Badge({ label, color, selected, onClick }) {
+/* ─────────────────────────────────────────────────────────────────
+   PRIMITIVE UI COMPONENTS
+───────────────────────────────────────────────────────────────── */
+function LineBullet({ label, color, textColor = "#fff", size = 48, selected, onClick, style = {} }) {
   return (
     <button
       onClick={onClick}
-      className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white shadow ${
-        selected ? "ring-4 ring-white/80 scale-105" : "hover:scale-[1.03]"
-      } transition`} 
-      style={{ backgroundColor: color }}
-      title={label}
+      title={`Line ${label}`}
+      style={{
+        width: size, height: size, minWidth: size,
+        borderRadius: "50%",
+        background: color,
+        color: textColor,
+        fontFamily: "'Barlow Condensed', sans-serif",
+        fontWeight: 800,
+        fontSize: size * 0.38,
+        border: selected ? "3px solid var(--accent)" : "3px solid transparent",
+        boxShadow: selected ? `0 0 0 3px rgba(252,204,10,0.35), 0 4px 16px ${color}55` : `0 2px 8px ${color}44`,
+        transform: selected ? "scale(1.12)" : "scale(1)",
+        transition: "all 0.18s ease",
+        cursor: onClick ? "pointer" : "default",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0,
+        ...style,
+      }}
     >
       {label}
     </button>
   );
 }
 
-function Section({ title, children, actions }) {
+function Card({ children, style = {}, className = "" }) {
   return (
-    <div className="bg-white/70 backdrop-blur rounded-2xl shadow p-5 border border-black/5">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xl font-semibold">{title}</h2>
-        <div className="flex gap-2">{actions}</div>
-      </div>
+    <div className={className} style={{
+      background: "var(--card)",
+      border: "1px solid var(--border)",
+      borderRadius: "var(--radius)",
+      padding: "1.5rem",
+      ...style,
+    }}>
       {children}
     </div>
   );
 }
 
-function TopNav({ page, setPage }) {
-  const tabs = [
-    { key: "live", label: "Live Rider" },
-    { key: "stats", label: "Stats / Bulk Edit" },
-  ];
+function SectionHeader({ title, subtitle, actions }) {
   return (
-    <div className="flex gap-2 p-1 bg-white/60 backdrop-blur rounded-full shadow border border-black/5">
-      {tabs.map((t) => (
-        <button
-          key={t.key}
-          onClick={() => setPage(t.key)}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-            page === t.key ? "bg-black text-white" : "hover:bg-black/5"
-          }`}
-        >
-          {t.label}
-        </button>
-      ))}
+    <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:"1rem", marginBottom:"1.25rem", flexWrap:"wrap" }}>
+      <div>
+        <h2 style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:"1.4rem", letterSpacing:"0.03em", color:"var(--text)" }}>
+          {title}
+        </h2>
+        {subtitle && <p style={{ color:"var(--muted)", fontSize:"0.85rem", marginTop:"0.2rem" }}>{subtitle}</p>}
+      </div>
+      {actions && <div style={{ display:"flex", gap:"0.5rem", flexWrap:"wrap" }}>{actions}</div>}
     </div>
   );
 }
 
-// ----------------------------- Pages -----------------------------
-function LiveRider({ datasets, onAddRide }) {
+function Btn({ children, onClick, variant = "primary", size = "md", disabled, as: Tag = "button", ...rest }) {
+  const variants = {
+    primary:  { background:"var(--accent)",  color:"#000", border:"none" },
+    ghost:    { background:"rgba(255,255,255,0.07)", color:"var(--text)", border:"1px solid var(--border)" },
+    danger:   { background:"var(--danger)",  color:"#fff", border:"none" },
+    success:  { background:"var(--success)", color:"#fff", border:"none" },
+    dark:     { background:"#252530",        color:"var(--text)", border:"1px solid var(--border)" },
+  };
+  const sizes = {
+    sm: { padding:"0.35rem 0.75rem", fontSize:"0.8rem" },
+    md: { padding:"0.55rem 1.1rem", fontSize:"0.92rem" },
+    lg: { padding:"0.8rem 1.6rem", fontSize:"1rem" },
+  };
+  return (
+    <Tag onClick={onClick} disabled={disabled} {...rest} style={{
+      ...variants[variant],
+      ...sizes[size],
+      borderRadius:"var(--radius-sm)",
+      fontWeight:600,
+      fontFamily:"'Barlow Condensed', sans-serif",
+      letterSpacing:"0.04em",
+      cursor: disabled ? "not-allowed" : "pointer",
+      opacity: disabled ? 0.4 : 1,
+      transition:"opacity 0.15s, filter 0.15s",
+      display:"inline-flex", alignItems:"center", gap:"0.4rem",
+      whiteSpace:"nowrap",
+      textDecoration:"none",
+      ...(rest.style || {}),
+    }}>
+      {children}
+    </Tag>
+  );
+}
+
+function DivisionTag({ div }) {
+  const colors = { A:"#EE352E", B:"#2850AD", SIR:"#0039A6" };
+  return (
+    <span style={{
+      background: colors[div] || "#555",
+      color:"#fff",
+      fontSize:"0.7rem",
+      fontWeight:700,
+      fontFamily:"'Barlow Condensed', sans-serif",
+      padding:"0.15rem 0.5rem",
+      borderRadius:4,
+      letterSpacing:"0.05em",
+    }}>
+      {div === "SIR" ? "SIR" : `Div ${div}`}
+    </span>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   HEADER / NAV
+───────────────────────────────────────────────────────────────── */
+function Header({ page, setPage, rideCount }) {
+  return (
+    <header style={{
+      position:"sticky", top:0, zIndex:50,
+      background:"rgba(10,10,15,0.92)",
+      backdropFilter:"blur(12px)",
+      borderBottom:"1px solid var(--border)",
+      padding:"0 max(1rem, env(safe-area-inset-left))",
+    }}>
+      <div style={{ maxWidth:1200, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0.85rem 0", gap:"1rem", flexWrap:"wrap" }}>
+        {/* Logo */}
+        <div style={{ display:"flex", alignItems:"center", gap:"0.75rem" }}>
+          <div style={{
+            width:42, height:42, borderRadius:10,
+            background:"var(--accent)", color:"#000",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:"0.85rem",
+            letterSpacing:"0.02em",
+          }}>NYC</div>
+          <div>
+            <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:"1.45rem", letterSpacing:"0.04em", lineHeight:1 }}>
+              HaveIRidden<span style={{ color:"var(--accent)" }}>?</span>
+            </div>
+            <div style={{ color:"var(--muted)", fontSize:"0.72rem", letterSpacing:"0.08em", textTransform:"uppercase" }}>
+              NYC Subway Tracker
+            </div>
+          </div>
+        </div>
+
+        {/* Nav tabs */}
+        <nav style={{ display:"flex", gap:"0.25rem", background:"var(--surface)", borderRadius:10, padding:"0.3rem", border:"1px solid var(--border)" }}>
+          {[
+            { key:"live", label:"🚇 Live Rider" },
+            { key:"stats", label:"📊 Stats & Edit" },
+          ].map(t => (
+            <button key={t.key} onClick={() => setPage(t.key)} style={{
+              padding:"0.5rem 1rem",
+              borderRadius:7,
+              border:"none",
+              fontFamily:"'Barlow Condensed', sans-serif",
+              fontWeight:700,
+              fontSize:"0.95rem",
+              letterSpacing:"0.03em",
+              background: page === t.key ? "var(--accent)" : "transparent",
+              color: page === t.key ? "#000" : "var(--muted)",
+              cursor:"pointer",
+              transition:"all 0.18s",
+            }}>
+              {t.label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Ride counter badge */}
+        <div style={{
+          fontFamily:"'Barlow Condensed', sans-serif",
+          fontSize:"0.85rem", color:"var(--muted)",
+          display:"flex", alignItems:"center", gap:"0.4rem",
+        }}>
+          <span style={{ color:"var(--accent)", fontWeight:800, fontSize:"1.2rem" }}>{rideCount}</span>
+          rides logged
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   LIVE RIDER PAGE
+───────────────────────────────────────────────────────────────── */
+function LiveRider({ datasets, onAddRide, rides }) {
   const [trainNumber, setTrainNumber] = useState("");
   const [selectedLine, setSelectedLine] = useState(null);
-  const [result, setResult] = useState(null);
+  const [lastRide, setLastRide] = useState(null);
+  const [flash, setFlash] = useState(false);
 
-  const lineGrid = useMemo(() => datasets.lines, [datasets]);
-
-  function handleDetect() {
+  function handleLog() {
     if (!trainNumber || !selectedLine) return;
     const found = detectModelFromNumber(trainNumber, datasets.rollingStock);
-    const model = found?.model || "Unknown";
-    const division = found?.division || "?";
     const ride = {
       id: crypto.randomUUID(),
       trainNumber: trainNumber.trim(),
       line: selectedLine.id,
+      lineLabel: selectedLine.label,
       lineColor: selectedLine.color,
-      model,
-      division,
+      lineTextColor: selectedLine.textColor || "#fff",
+      model: found?.model || "Unknown",
+      division: found?.division || "?",
       timestamp: new Date().toISOString(),
     };
     onAddRide(ride);
-    setResult(ride);
+    setLastRide(ride);
     setTrainNumber("");
+    setFlash(true);
+    setTimeout(() => setFlash(false), 600);
   }
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <Section title="Enter Train Info">
-        <div className="space-y-4">
-          <label className="block text-sm font-medium">Train car number</label>
-          <input
-            className="w-full border rounded-xl px-4 py-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-black"
-            placeholder="e.g., 8778"
-            inputMode="numeric"
-            value={trainNumber}
-            onChange={(e) => setTrainNumber(e.target.value.replace(/[^0-9]/g, ""))}
-          />
+  // Group lines for display
+  const lineGroups = useMemo(() => {
+    const groups = {};
+    datasets.lines.forEach(l => {
+      const key = l.division;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(l);
+    });
+    return groups;
+  }, [datasets]);
 
-          <label className="block text-sm font-medium mt-2">Line</label>
-          <div className="grid grid-cols-8 gap-2">
-            {lineGrid.map((l) => (
-              <Badge
-                key={l.id}
-                label={l.label}
-                color={l.color}
-                selected={selectedLine?.id === l.id}
-                onClick={() => setSelectedLine(l)}
-              />
+  const divisionNames = { A: "A Division (IRT)", B: "B Division (IND/BMT)", SIR: "Staten Island Railway" };
+  const recentRides = [...rides].reverse().slice(0, 6);
+
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:"1.25rem", maxWidth:1200, margin:"0 auto" }}>
+
+      {/* ── INPUT CARD ── */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(300px, 1fr))", gap:"1.25rem" }}>
+        <Card>
+          <SectionHeader title="Log a Ride" subtitle="Enter your car number and select the line" />
+
+          {/* Car number input */}
+          <label style={{ display:"block", color:"var(--muted)", fontSize:"0.8rem", fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:"0.4rem" }}>
+            Train Car Number
+          </label>
+          <div style={{ position:"relative", marginBottom:"1.5rem" }}>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="e.g. 8778"
+              value={trainNumber}
+              onChange={e => setTrainNumber(e.target.value.replace(/[^0-9]/g, ""))}
+              onKeyDown={e => e.key === "Enter" && handleLog()}
+              style={{ fontSize:"2rem", fontWeight:700, fontFamily:"'Barlow Condensed', sans-serif", letterSpacing:"0.1em", padding:"0.8rem 1.2rem", textAlign:"center" }}
+            />
+          </div>
+
+          {/* Line picker */}
+          <label style={{ display:"block", color:"var(--muted)", fontSize:"0.8rem", fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:"0.75rem" }}>
+            Select Line
+          </label>
+          {Object.entries(lineGroups).map(([div, lines]) => (
+            <div key={div} style={{ marginBottom:"1rem" }}>
+              <div style={{ fontSize:"0.72rem", color:"var(--muted)", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:"0.5rem", display:"flex", alignItems:"center", gap:"0.4rem" }}>
+                <DivisionTag div={div} /> {divisionNames[div]}
+              </div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:"0.5rem" }}>
+                {lines.map(l => (
+                  <LineBullet
+                    key={l.id}
+                    label={l.label}
+                    color={l.color}
+                    textColor={l.textColor || "#fff"}
+                    size={52}
+                    selected={selectedLine?.id === l.id}
+                    onClick={() => setSelectedLine(l === selectedLine ? null : l)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Selected line info */}
+          {selectedLine && (
+            <motion.div
+              initial={{ opacity:0, y:4 }}
+              animate={{ opacity:1, y:0 }}
+              style={{ margin:"1rem 0", padding:"0.75rem 1rem", background:"var(--surface)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border)", display:"flex", alignItems:"center", gap:"0.75rem" }}
+            >
+              <LineBullet label={selectedLine.label} color={selectedLine.color} textColor={selectedLine.textColor} size={38} />
+              <div style={{ fontSize:"0.85rem", color:"var(--muted)" }}>
+                <div style={{ color:"var(--text)", fontWeight:600 }}>Line {selectedLine.id}</div>
+                <div>{selectedLine.terminals?.[0]} ↔ {selectedLine.terminals?.[1]}</div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Log button */}
+          <motion.button
+            onClick={handleLog}
+            disabled={!trainNumber || !selectedLine}
+            animate={{ scale: flash ? [1, 1.04, 1] : 1 }}
+            style={{
+              width:"100%", padding:"1rem",
+              background: (!trainNumber || !selectedLine) ? "#252530" : "var(--accent)",
+              color: (!trainNumber || !selectedLine) ? "var(--muted)" : "#000",
+              border:"none", borderRadius:"var(--radius-sm)",
+              fontFamily:"'Barlow Condensed', sans-serif",
+              fontWeight:800, fontSize:"1.2rem", letterSpacing:"0.08em",
+              cursor: (!trainNumber || !selectedLine) ? "not-allowed" : "pointer",
+              transition:"background 0.2s, color 0.2s",
+              marginTop:"0.25rem",
+            }}
+          >
+            LOG RIDE →
+          </motion.button>
+        </Card>
+
+        {/* ── RESULT CARD ── */}
+        <div style={{ display:"flex", flexDirection:"column", gap:"1.25rem" }}>
+          <Card style={{ flex:1 }}>
+            <SectionHeader title="Result" />
+            <AnimatePresence mode="wait">
+              {!lastRide ? (
+                <div style={{ color:"var(--muted)", fontSize:"0.95rem", padding:"1.5rem 0" }}>
+                  No ride logged yet — enter a car number and pick a line.
+                </div>
+              ) : (
+                <motion.div
+                  key={lastRide.id}
+                  initial={{ opacity:0, y:10 }}
+                  animate={{ opacity:1, y:0 }}
+                  exit={{ opacity:0 }}
+                >
+                  {/* Hero result */}
+                  <div style={{ display:"flex", alignItems:"center", gap:"1rem", marginBottom:"1.25rem" }}>
+                    <LineBullet label={lastRide.lineLabel} color={lastRide.lineColor} textColor={lastRide.lineTextColor} size={64} />
+                    <div>
+                      <div style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:900, fontSize:"2.2rem", lineHeight:1 }}>
+                        {lastRide.model}
+                      </div>
+                      <div style={{ color:"var(--muted)", fontSize:"0.9rem" }}>Car #{lastRide.trainNumber}</div>
+                    </div>
+                  </div>
+
+                  {/* Details grid */}
+                  {[
+                    ["Line",     lastRide.line],
+                    ["Division", lastRide.division],
+                    ["Time",     new Date(lastRide.timestamp).toLocaleString()],
+                  ].map(([label, val]) => (
+                    <div key={label} style={{ display:"flex", justifyContent:"space-between", padding:"0.5rem 0", borderBottom:"1px solid var(--border)", fontSize:"0.9rem" }}>
+                      <span style={{ color:"var(--muted)" }}>{label}</span>
+                      <span style={{ fontWeight:600 }}>{val}</span>
+                    </div>
+                  ))}
+
+                  {lastRide.model === "Unknown" && (
+                    <div style={{ marginTop:"1rem", padding:"0.75rem", background:"rgba(238,53,46,0.12)", border:"1px solid rgba(238,53,46,0.3)", borderRadius:8, fontSize:"0.82rem", color:"#ff8882" }}>
+                      Model not found — add or adjust ranges in Stats → Rolling Stock.
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Card>
+
+          <Card style={{ flex:1 }}>
+            <SectionHeader title="Tips" />
+            <ul style={{ listStyle:"none", display:"flex", flexDirection:"column", gap:"0.6rem" }}>
+              {[
+                "Car numbers are typically 3–4 digits; SIR uses 3 digits (100–199).",
+                "If a model shows Unknown, add or adjust ranges in Stats → Rolling Stock.",
+                "Export your ride history as JSON from the Stats page.",
+                "Datasets are editable—fleet ranges and terminals change over time.",
+              ].map((tip, i) => (
+                <li key={i} style={{ display:"flex", gap:"0.6rem", fontSize:"0.88rem", color:"var(--muted)" }}>
+                  <span style={{ color:"var(--accent)", fontWeight:800, flexShrink:0 }}>→</span>
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+      </div>
+
+      {/* ── RECENT RIDES ── */}
+      <Card>
+        <SectionHeader title="Recent Rides" subtitle={`${rides.length} total logged`} />
+        {recentRides.length === 0 ? (
+          <div style={{ color:"var(--muted)", padding:"1rem 0" }}>No rides yet.</div>
+        ) : (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(260px, 1fr))", gap:"0.75rem" }}>
+            {recentRides.map((r, i) => (
+              <motion.div
+                key={r.id}
+                initial={{ opacity:0, y:6 }}
+                animate={{ opacity:1, y:0 }}
+                transition={{ delay: i * 0.05 }}
+                style={{ display:"flex", alignItems:"center", gap:"0.75rem", padding:"0.75rem 1rem", background:"var(--surface)", borderRadius:10, border:"1px solid var(--border)" }}
+              >
+                <LineBullet label={r.lineLabel || r.line} color={r.lineColor} textColor={r.lineTextColor || "#fff"} size={42} />
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontWeight:700, fontFamily:"'Barlow Condensed', sans-serif", fontSize:"1.05rem", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                    {r.model} <span style={{ color:"var(--muted)", fontWeight:400 }}>#{r.trainNumber}</span>
+                  </div>
+                  <div style={{ color:"var(--muted)", fontSize:"0.78rem" }}>{new Date(r.timestamp).toLocaleString()}</div>
+                </div>
+              </motion.div>
             ))}
           </div>
-
-          <button
-            onClick={handleDetect}
-            disabled={!trainNumber || !selectedLine}
-            className="mt-4 w-full bg-black text-white rounded-xl py-3 font-semibold shadow hover:opacity-90 disabled:opacity-40"
-          >
-            Log Ride
-          </button>
-
-          <p className="text-xs text-black/60 mt-2">
-            Rides are stored in a cookie named <code>{COOKIE_NAME}</code>. Datasets are editable in the Stats page.
-          </p>
-        </div>
-      </Section>
-
-      <Section title="Result & Tips">
-        {!result ? (
-          <p className="text-black/60">Enter a train number and choose a line to detect the model and save the ride.</p>
-        ) : (
-          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4">
-            <Badge label={result.line} color={result.lineColor} />
-            <div>
-              <div className="text-lg font-semibold">{result.model}</div>
-              <div className="text-black/60 text-sm">Division: {result.division}</div>
-              <div className="text-black/60 text-sm">Logged: {new Date(result.timestamp).toLocaleString()}</div>
-            </div>
-          </motion.div>
         )}
-        <ul className="list-disc pl-5 mt-4 text-sm text-black/70 space-y-1">
-          <li>If a model shows as <em>Unknown</em>, add or adjust ranges under Rolling Stock on the Stats page.</li>
-          <li>Car numbers are typically 3–4 digits; SIR uses 3 digits (100–199).</li>
-          <li>You can export your ride history as JSON from the Stats page.</li>
-        </ul>
-      </Section>
-
-      <Section title="Recent Rides (Cookie)">
-        <RecentRidesMini />
-      </Section>
+      </Card>
     </div>
   );
 }
 
-function RecentRidesMini() {
-  const [rides, setRides] = useCookieRides();
-  const lastTen = [...rides].reverse().slice(0, 8);
-  return (
-    <div className="space-y-2">
-      {lastTen.length === 0 && (
-        <div className="text-black/60">No rides yet.</div>
-      )}
-      {lastTen.map((r) => (
-        <div key={r.id} className="flex items-center gap-3 p-2 bg-white rounded-xl border border-black/5 shadow-sm">
-          <Badge label={r.line} color={r.lineColor} />
-          <div className="text-sm">
-            <div className="font-medium">{r.model} • #{r.trainNumber}</div>
-            <div className="text-black/60">{new Date(r.timestamp).toLocaleString()}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
+/* ─────────────────────────────────────────────────────────────────
+   STATS PAGE
+───────────────────────────────────────────────────────────────── */
 function StatsPage({ datasets, setDatasets }) {
   const [rides, setRides] = useCookieRides();
+  const [tab, setTab] = useState("history");
 
   function exportRides() {
-    const blob = new Blob([JSON.stringify(rides, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(rides, null, 2)], { type:"application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `nyc-rides-${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
+    a.href = url; a.download = `nyc-rides-${new Date().toISOString().slice(0,10)}.json`; a.click();
     URL.revokeObjectURL(url);
   }
 
@@ -319,298 +610,325 @@ function StatsPage({ datasets, setDatasets }) {
     setRides([]);
   }
 
-  function addStock() {
-    setDatasets({
-      ...datasets,
-      rollingStock: [...datasets.rollingStock, { model: "New Model", ranges: [[0, 0]], division: "A" }],
-    });
-  }
-
-  function addLine() {
-    setDatasets({
-      ...datasets,
-      lines: [...datasets.lines, { id: "X", label: "X", division: "B", color: "#000000", terminals: ["Terminus A", "Terminus B"] }],
-    });
-  }
-
-  function prefill() {
-    const seeded = prefillDatasets();
-    setDatasets(seeded);
-  }
-
-  function updateStock(idx, field, value) {
-    const next = { ...datasets };
-    next.rollingStock = datasets.rollingStock.map((s, i) =>
-      i === idx ? { ...s, [field]: value } : s
-    );
-    setDatasets(next);
-  }
-
-  function updateStockRange(idx, rIdx, which, value) {
-    const v = parseInt(value || "0", 10);
-    const next = { ...datasets };
-    next.rollingStock = datasets.rollingStock.map((s, i) => {
-      if (i !== idx) return s;
-      const ranges = s.ranges.map((r, j) => (j === rIdx ? [which === 0 ? v : r[0], which === 1 ? v : r[1]] : r));
-      return { ...s, ranges };
-    });
-    setDatasets(next);
-  }
-
-  function addRange(idx) {
-    const next = { ...datasets };
-    next.rollingStock[idx].ranges = [...next.rollingStock[idx].ranges, [0, 0]];
-    setDatasets(next);
-  }
-
-  function removeStock(idx) {
-    const next = { ...datasets };
-    next.rollingStock = datasets.rollingStock.filter((_, i) => i !== idx);
-    setDatasets(next);
-  }
-
-  function updateLine(idx, field, value) {
-    const next = { ...datasets };
-    next.lines = datasets.lines.map((l, i) => (i === idx ? { ...l, [field]: value } : l));
-    setDatasets(next);
-  }
-
-  function removeLine(idx) {
-    const next = { ...datasets };
-    next.lines = datasets.lines.filter((_, i) => i !== idx);
-    setDatasets(next);
-  }
-
-  function save() {
-    saveDatasets(datasets);
-    alert("Datasets saved to localStorage.");
-  }
-
   function importRides(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       try {
         const parsed = JSON.parse(String(reader.result));
-        if (!Array.isArray(parsed)) throw new Error("Expected an array of rides");
+        if (!Array.isArray(parsed)) throw new Error("Expected an array");
         setRides(parsed);
-        alert("Imported rides into cookie.");
-      } catch (err) {
-        alert("Invalid JSON: " + err.message);
-      }
+      } catch (err) { alert("Invalid JSON: " + err.message); }
     };
     reader.readAsText(file);
   }
 
+  function save() { saveDatasets(datasets); alert("Saved to localStorage."); }
+  function prefill() { setDatasets(prefillDatasets()); }
+
+  /* Rolling Stock editors */
+  function addStock() { setDatasets({ ...datasets, rollingStock: [...datasets.rollingStock, { model:"New Model", ranges:[[0,0]], division:"A" }] }); }
+  function removeStock(idx) { setDatasets({ ...datasets, rollingStock: datasets.rollingStock.filter((_,i) => i!==idx) }); }
+  function updateStock(idx, field, value) { setDatasets({ ...datasets, rollingStock: datasets.rollingStock.map((s,i) => i===idx ? {...s,[field]:value} : s) }); }
+  function addRange(idx) { const rs = datasets.rollingStock.map((s,i) => i===idx ? {...s, ranges:[...s.ranges,[0,0]]} : s); setDatasets({...datasets, rollingStock:rs}); }
+  function updateRange(idx, rIdx, which, value) {
+    const rs = datasets.rollingStock.map((s,i) => {
+      if (i!==idx) return s;
+      const ranges = s.ranges.map((r,j) => j===rIdx ? [which===0?parseInt(value||0):r[0], which===1?parseInt(value||0):r[1]] : r);
+      return {...s, ranges};
+    });
+    setDatasets({...datasets, rollingStock:rs});
+  }
+
+  /* Lines editors */
+  function addLine() { setDatasets({...datasets, lines:[...datasets.lines, {id:"X",label:"X",division:"B",color:"#000000",textColor:"#fff",terminals:["A","B"]}]}); }
+  function removeLine(idx) { setDatasets({...datasets, lines:datasets.lines.filter((_,i)=>i!==idx)}); }
+  function updateLine(idx, field, value) { setDatasets({...datasets, lines:datasets.lines.map((l,i)=>i===idx?{...l,[field]:value}:l)}); }
+
+  /* Summary stats */
+  const modelCounts = useMemo(() => {
+    const c = {};
+    rides.forEach(r => { c[r.model] = (c[r.model]||0)+1; });
+    return Object.entries(c).sort((a,b)=>b[1]-a[1]);
+  }, [rides]);
+
+  const lineCounts = useMemo(() => {
+    const c = {};
+    rides.forEach(r => { c[r.line] = (c[r.line]||0)+1; });
+    return Object.entries(c).sort((a,b)=>b[1]-a[1]);
+  }, [rides]);
+
+  const innerTabs = [
+    { key:"history", label:"Ride History" },
+    { key:"rolling", label:"Rolling Stock" },
+    { key:"lines",   label:"Lines" },
+    { key:"summary", label:"Summary" },
+  ];
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      <Section
-        title="Rolling Stock (Editable)"
-        actions={
-          <div className="flex gap-2">
-            <button onClick={addStock} className="px-3 py-2 rounded-lg bg-black text-white text-sm">Add Model</button>
-            <button onClick={prefill} className="px-3 py-2 rounded-lg bg-black/80 text-white text-sm">Prefill 2025 dataset</button>
-            <button onClick={save} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">Save</button>
-          </div>
-        }
-      >
-        <div className="space-y-3 max-h-[60vh] overflow-auto pr-1">
-          {datasets.rollingStock.map((s, idx) => (
-            <div key={idx} className="p-3 rounded-xl border bg-white shadow-sm">
-              <div className="flex gap-3 items-center">
-                <input
-                  className="border rounded-lg px-3 py-2 w-40"
-                  value={s.model}
-                  onChange={(e) => updateStock(idx, "model", e.target.value)}
-                />
-                <select
-                  className="border rounded-lg px-3 py-2"
-                  value={s.division}
-                  onChange={(e) => updateStock(idx, "division", e.target.value)}
-                >
-                  <option>A</option>
-                  <option>B</option>
-                  <option>SIR</option>
-                </select>
-                <button onClick={() => addRange(idx)} className="ml-auto text-sm px-2 py-1 bg-black text-white rounded-lg">Add Range</button>
-                <button onClick={() => removeStock(idx)} className="text-sm px-2 py-1 bg-red-600 text-white rounded-lg">Delete</button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-                {s.ranges.map((r, rIdx) => (
-                  <div key={rIdx} className="flex items-center gap-2">
-                    <span className="text-xs text-black/60">Range {rIdx + 1}</span>
-                    <input className="border rounded px-2 py-1 w-24" value={r[0]} onChange={(e) => updateStockRange(idx, rIdx, 0, e.target.value)} />
-                    <span>–</span>
-                    <input className="border rounded px-2 py-1 w-24" value={r[1]} onChange={(e) => updateStockRange(idx, rIdx, 1, e.target.value)} />
+    <div style={{ maxWidth:1200, margin:"0 auto" }}>
+      {/* Sub-tabs */}
+      <div style={{ display:"flex", gap:"0.35rem", marginBottom:"1.25rem", background:"var(--card)", borderRadius:"var(--radius-sm)", padding:"0.3rem", border:"1px solid var(--border)", overflowX:"auto" }} className="hide-scrollbar">
+        {innerTabs.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)} style={{
+            padding:"0.5rem 1.1rem", border:"none", borderRadius:6, whiteSpace:"nowrap",
+            fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:"0.95rem", letterSpacing:"0.03em",
+            background: tab===t.key ? "var(--accent)" : "transparent",
+            color: tab===t.key ? "#000" : "var(--muted)",
+            cursor:"pointer", transition:"all 0.18s",
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* ── HISTORY ── */}
+      {tab === "history" && (
+        <Card>
+          <SectionHeader
+            title="Ride History"
+            subtitle={`${rides.length} rides stored in cookie`}
+            actions={
+              <>
+                <Btn onClick={exportRides} variant="ghost" size="sm">⬇ Export JSON</Btn>
+                <Btn as="label" variant="ghost" size="sm" style={{ cursor:"pointer" }}>
+                  ⬆ Import JSON
+                  <input type="file" accept="application/json" style={{ display:"none" }} onChange={importRides} />
+                </Btn>
+                <Btn onClick={clearRides} variant="danger" size="sm">🗑 Clear All</Btn>
+              </>
+            }
+          />
+          <RideTable rides={rides} setRides={setRides} datasets={datasets} />
+        </Card>
+      )}
+
+      {/* ── ROLLING STOCK ── */}
+      {tab === "rolling" && (
+        <Card>
+          <SectionHeader
+            title="Rolling Stock"
+            subtitle="Car number ranges by model — edit to match current fleet assignments"
+            actions={
+              <>
+                <Btn onClick={addStock} variant="ghost" size="sm">+ Add Model</Btn>
+                <Btn onClick={prefill} variant="dark" size="sm">↺ Prefill 2025</Btn>
+                <Btn onClick={save} variant="success" size="sm">✓ Save</Btn>
+              </>
+            }
+          />
+          <div style={{ display:"flex", flexDirection:"column", gap:"0.75rem", maxHeight:"70vh", overflowY:"auto", paddingRight:"0.25rem" }}>
+            {datasets.rollingStock.map((s, idx) => (
+              <div key={idx} style={{ background:"var(--surface)", borderRadius:"var(--radius-sm)", padding:"1rem", border:"1px solid var(--border)" }}>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:"0.6rem", alignItems:"center", marginBottom:"0.75rem" }}>
+                  <input value={s.model} onChange={e => updateStock(idx,"model",e.target.value)} style={{ width:160 }} />
+                  <select value={s.division} onChange={e => updateStock(idx,"division",e.target.value)} style={{ width:90 }}>
+                    <option>A</option><option>B</option><option>SIR</option>
+                  </select>
+                  <DivisionTag div={s.division} />
+                  <div style={{ marginLeft:"auto", display:"flex", gap:"0.4rem" }}>
+                    <Btn onClick={() => addRange(idx)} variant="ghost" size="sm">+ Range</Btn>
+                    <Btn onClick={() => removeStock(idx)} variant="danger" size="sm">Delete</Btn>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section
-        title="Subway Lines (Editable)"
-        actions={
-          <div className="flex gap-2">
-            <button onClick={addLine} className="px-3 py-2 rounded-lg bg-black text-white text-sm">Add Line</button>
-            <button onClick={save} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">Save</button>
-          </div>
-        }
-      >
-        <div className="space-y-3 max-h-[60vh] overflow-auto pr-1">
-          {datasets.lines.map((l, idx) => (
-            <div key={idx} className="p-3 rounded-xl border bg-white shadow-sm">
-              <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex items-center gap-2">
-                  <Badge label={l.label} color={l.color} />
                 </div>
-                <input className="border rounded px-3 py-2 w-20" value={l.id} onChange={(e) => updateLine(idx, "id", e.target.value)} />
-                <input className="border rounded px-3 py-2 w-24" value={l.label} onChange={(e) => updateLine(idx, "label", e.target.value)} />
-                <select className="border rounded px-3 py-2" value={l.division} onChange={(e) => updateLine(idx, "division", e.target.value)}>
-                  <option>A</option>
-                  <option>B</option>
-                  <option>SIR</option>
-                </select>
-                <input className="border rounded px-3 py-2 w-36" value={l.color} onChange={(e) => updateLine(idx, "color", e.target.value)} />
-                <input className="border rounded px-3 py-2 flex-1" value={l.terminals[0]} onChange={(e) => updateLine(idx, "terminals", [e.target.value, l.terminals[1]])} />
-                <input className="border rounded px-3 py-2 flex-1" value={l.terminals[1]} onChange={(e) => updateLine(idx, "terminals", [l.terminals[0], e.target.value])} />
-                <button onClick={() => removeLine(idx)} className="text-sm px-2 py-1 bg-red-600 text-white rounded-lg ml-auto">Delete</button>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:"0.5rem" }}>
+                  {s.ranges.map((r, rIdx) => (
+                    <div key={rIdx} style={{ display:"flex", alignItems:"center", gap:"0.4rem", background:"var(--card)", padding:"0.4rem 0.6rem", borderRadius:6, border:"1px solid var(--border)" }}>
+                      <span style={{ color:"var(--muted)", fontSize:"0.75rem", whiteSpace:"nowrap" }}>#{rIdx+1}</span>
+                      <input value={r[0]} onChange={e => updateRange(idx,rIdx,0,e.target.value)} style={{ width:80, textAlign:"center" }} />
+                      <span style={{ color:"var(--muted)" }}>–</span>
+                      <input value={r[1]} onChange={e => updateRange(idx,rIdx,1,e.target.value)} style={{ width:80, textAlign:"center" }} />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section
-        title="Ride History (Cookie)"
-        actions={
-          <div className="flex gap-2">
-            <button onClick={exportRides} className="px-3 py-2 rounded-lg bg-black text-white text-sm">Export JSON</button>
-            <label className="px-3 py-2 rounded-lg bg-black/80 text-white text-sm cursor-pointer">
-              Import JSON
-              <input type="file" accept="application/json" className="hidden" onChange={importRides} />
-            </label>
-            <button onClick={clearRides} className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm">Clear All</button>
+            ))}
           </div>
-        }
-      >
-        <RideTable rides={rides} setRides={setRides} />
-      </Section>
+        </Card>
+      )}
+
+      {/* ── LINES ── */}
+      {tab === "lines" && (
+        <Card>
+          <SectionHeader
+            title="Subway Lines"
+            subtitle="Edit line IDs, colors, and terminal stations"
+            actions={
+              <>
+                <Btn onClick={addLine} variant="ghost" size="sm">+ Add Line</Btn>
+                <Btn onClick={save} variant="success" size="sm">✓ Save</Btn>
+              </>
+            }
+          />
+          <div style={{ display:"flex", flexDirection:"column", gap:"0.75rem", maxHeight:"70vh", overflowY:"auto", paddingRight:"0.25rem" }}>
+            {datasets.lines.map((l, idx) => (
+              <div key={idx} style={{ background:"var(--surface)", borderRadius:"var(--radius-sm)", padding:"0.85rem 1rem", border:"1px solid var(--border)", display:"flex", flexWrap:"wrap", gap:"0.6rem", alignItems:"center" }}>
+                <LineBullet label={l.label} color={l.color} textColor={l.textColor||"#fff"} size={40} />
+                <input value={l.id} onChange={e => updateLine(idx,"id",e.target.value)} style={{ width:56 }} placeholder="ID" />
+                <input value={l.label} onChange={e => updateLine(idx,"label",e.target.value)} style={{ width:64 }} placeholder="Label" />
+                <select value={l.division} onChange={e => updateLine(idx,"division",e.target.value)} style={{ width:80 }}>
+                  <option>A</option><option>B</option><option>SIR</option>
+                </select>
+                <div style={{ display:"flex", alignItems:"center", gap:"0.4rem" }}>
+                  <input type="color" value={l.color} onChange={e => updateLine(idx,"color",e.target.value)} style={{ width:40, height:36, padding:2, cursor:"pointer" }} />
+                  <input value={l.color} onChange={e => updateLine(idx,"color",e.target.value)} style={{ width:90 }} placeholder="#000000" />
+                </div>
+                <input value={l.terminals?.[0]||""} onChange={e => updateLine(idx,"terminals",[e.target.value, l.terminals?.[1]||""])} style={{ flex:1, minWidth:140 }} placeholder="Terminal A" />
+                <input value={l.terminals?.[1]||""} onChange={e => updateLine(idx,"terminals",[l.terminals?.[0]||"", e.target.value])} style={{ flex:1, minWidth:140 }} placeholder="Terminal B" />
+                <Btn onClick={() => removeLine(idx)} variant="danger" size="sm">Delete</Btn>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* ── SUMMARY ── */}
+      {tab === "summary" && (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(280px, 1fr))", gap:"1.25rem" }}>
+          <Card>
+            <SectionHeader title="By Model" subtitle="Cars ridden per rolling stock model" />
+            {modelCounts.length === 0 ? (
+              <div style={{ color:"var(--muted)" }}>No rides yet.</div>
+            ) : modelCounts.map(([model, count]) => (
+              <div key={model} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"0.5rem 0", borderBottom:"1px solid var(--border)" }}>
+                <span style={{ fontWeight:600 }}>{model}</span>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:"1.1rem", color:"var(--accent)" }}>{count}</span>
+              </div>
+            ))}
+          </Card>
+
+          <Card>
+            <SectionHeader title="By Line" subtitle="Rides logged per subway line" />
+            {lineCounts.length === 0 ? (
+              <div style={{ color:"var(--muted)" }}>No rides yet.</div>
+            ) : lineCounts.map(([lineId, count]) => {
+              const lineData = datasets.lines.find(l => l.id === lineId);
+              return (
+                <div key={lineId} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"0.5rem 0", borderBottom:"1px solid var(--border)" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:"0.6rem" }}>
+                    {lineData && <LineBullet label={lineData.label} color={lineData.color} textColor={lineData.textColor||"#fff"} size={30} />}
+                    <span style={{ fontWeight:600 }}>Line {lineId}</span>
+                  </div>
+                  <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:"1.1rem", color:"var(--accent)" }}>{count}</span>
+                </div>
+              );
+            })}
+          </Card>
+
+          <Card>
+            <SectionHeader title="Overview" />
+            {[
+              ["Total Rides", rides.length],
+              ["Unique Models", new Set(rides.map(r=>r.model)).size],
+              ["Unique Lines",  new Set(rides.map(r=>r.line)).size],
+              ["First Ride", rides.length ? new Date(rides[0].timestamp).toLocaleDateString() : "—"],
+              ["Latest Ride", rides.length ? new Date(rides[rides.length-1].timestamp).toLocaleDateString() : "—"],
+            ].map(([label, val]) => (
+              <div key={label} style={{ display:"flex", justifyContent:"space-between", padding:"0.6rem 0", borderBottom:"1px solid var(--border)" }}>
+                <span style={{ color:"var(--muted)" }}>{label}</span>
+                <span style={{ fontFamily:"'Barlow Condensed', sans-serif", fontWeight:800, fontSize:"1.1rem", color:"var(--accent)" }}>{val}</span>
+              </div>
+            ))}
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
 
-function RideTable({ rides, setRides }) {
+/* ─────────────────────────────────────────────────────────────────
+   RIDE TABLE
+───────────────────────────────────────────────────────────────── */
+function RideTable({ rides, setRides, datasets }) {
   const [query, setQuery] = useState("");
-  const filtered = rides.filter((r) => {
+
+  const filtered = rides.filter(r => {
     const q = query.toLowerCase();
-    return (
-      r.trainNumber?.toLowerCase().includes(q) ||
-      r.model?.toLowerCase().includes(q) ||
-      r.line?.toLowerCase().includes(q)
-    );
+    return !q || [r.trainNumber, r.model, r.line, r.lineLabel].some(v => v?.toLowerCase().includes(q));
   });
 
-  function deleteRide(id) {
-    setRides(rides.filter((r) => r.id !== id));
-  }
-
-  function clearFilter() {
-    setQuery("");
-  }
+  function deleteRide(id) { setRides(rides.filter(r => r.id !== id)); }
 
   return (
     <div>
-      <div className="flex gap-2 mb-3">
-        <input
-          className="border rounded-xl px-3 py-2 flex-1"
-          placeholder="Filter by line, model, or number"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <button onClick={clearFilter} className="px-3 py-2 rounded-lg bg-black text-white text-sm">Reset</button>
+      <div style={{ display:"flex", gap:"0.6rem", marginBottom:"1rem" }}>
+        <input placeholder="Filter by line, model, car #…" value={query} onChange={e => setQuery(e.target.value)} style={{ flex:1 }} />
+        {query && <Btn onClick={() => setQuery("")} variant="ghost" size="sm">✕ Clear</Btn>}
       </div>
 
-      <div className="overflow-auto max-h-[50vh] rounded-xl border">
-        <table className="min-w-full text-sm">
-          <thead className="bg-black text-white sticky top-0">
-            <tr>
-              <th className="text-left p-2">Time</th>
-              <th className="text-left p-2">Line</th>
-              <th className="text-left p-2">Car #</th>
-              <th className="text-left p-2">Model</th>
-              <th className="text-left p-2">Division</th>
-              <th className="text-left p-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={6} className="p-4 text-center text-black/60">No rides match.</td>
+      {filtered.length === 0 ? (
+        <div style={{ color:"var(--muted)", padding:"2rem 0", textAlign:"center" }}>No rides match.</div>
+      ) : (
+        <div style={{ overflowX:"auto", borderRadius:"var(--radius-sm)", border:"1px solid var(--border)" }}>
+          <table>
+            <thead>
+              <tr style={{ background:"#0f0f18" }}>
+                {["Time","Line","Car #","Model","Division",""].map(h => (
+                  <th key={h} style={{ padding:"0.65rem 0.85rem", fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:"0.78rem", letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--muted)", whiteSpace:"nowrap", borderBottom:"1px solid var(--border)" }}>
+                    {h}
+                  </th>
+                ))}
               </tr>
-            )}
-            {filtered.map((r) => (
-              <tr key={r.id} className="odd:bg-white even:bg-black/5">
-                <td className="p-2">{new Date(r.timestamp).toLocaleString()}</td>
-                <td className="p-2">
-                  <div className="flex items-center gap-2">
-                    <Badge label={r.line} color={r.lineColor} />
-                    <span>{r.line}</span>
-                  </div>
-                </td>
-                <td className="p-2">#{r.trainNumber}</td>
-                <td className="p-2">{r.model}</td>
-                <td className="p-2">{r.division}</td>
-                <td className="p-2">
-                  <button onClick={() => deleteRide(r.id)} className="px-2 py-1 bg-red-600 text-white rounded-lg text-xs">Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {[...filtered].reverse().map((r, i) => (
+                <tr key={r.id} style={{ background: i%2===0 ? "transparent" : "rgba(255,255,255,0.02)", borderBottom:"1px solid var(--border)" }}>
+                  <td style={{ padding:"0.6rem 0.85rem", fontSize:"0.85rem", color:"var(--muted)", whiteSpace:"nowrap" }}>{new Date(r.timestamp).toLocaleString()}</td>
+                  <td style={{ padding:"0.6rem 0.85rem" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
+                      <LineBullet label={r.lineLabel||r.line} color={r.lineColor||"#555"} textColor={r.lineTextColor||"#fff"} size={32} />
+                    </div>
+                  </td>
+                  <td style={{ padding:"0.6rem 0.85rem", fontFamily:"'Barlow Condensed', sans-serif", fontWeight:700, fontSize:"1rem" }}>#{r.trainNumber}</td>
+                  <td style={{ padding:"0.6rem 0.85rem", fontWeight:600 }}>{r.model}</td>
+                  <td style={{ padding:"0.6rem 0.85rem" }}><DivisionTag div={r.division} /></td>
+                  <td style={{ padding:"0.6rem 0.85rem" }}>
+                    <Btn onClick={() => deleteRide(r.id)} variant="danger" size="sm">Delete</Btn>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
-// ----------------------------- Root App -----------------------------
+/* ─────────────────────────────────────────────────────────────────
+   ROOT APP
+───────────────────────────────────────────────────────────────── */
 export default function App() {
   const [page, setPage] = useState("live");
-  const [datasets, setDatasets] = useState(getDatasets());
-
+  const [datasets, setDatasets] = useState(getDatasets);
   const [rides, setRides] = useCookieRides();
 
-  function onAddRide(ride) {
-    setRides([...rides, ride]);
-  }
+  function onAddRide(ride) { setRides(prev => [...prev, ride]); }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 text-slate-900">
-      <header className="max-w-6xl mx-auto px-4 pt-8 pb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-black text-white grid place-items-center font-bold">NYC</div>
-          <div>
-            <h1 className="text-2xl font-bold">Subway Ride Tracker</h1>
-            <p className="text-sm text-black/60">Log rides in Live mode • Edit datasets and review history in Stats</p>
-          </div>
-        </div>
-        <TopNav page={page} setPage={setPage} />
-      </header>
+    <>
+      <GlobalStyles />
+      <div style={{ minHeight:"100vh", position:"relative", zIndex:1 }}>
+        <Header page={page} setPage={setPage} rideCount={rides.length} />
 
-      <main className="max-w-6xl mx-auto px-4 pb-12">
-        {page === "live" ? (
-          <LiveRider datasets={datasets} onAddRide={onAddRide} />
-        ) : (
-          <StatsPage datasets={datasets} setDatasets={setDatasets} />
-        )}
-      </main>
+        <main style={{ padding:"1.5rem max(1rem, env(safe-area-inset-left)) 3rem" }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={page}
+              initial={{ opacity:0, y:8 }}
+              animate={{ opacity:1, y:0 }}
+              exit={{ opacity:0 }}
+              transition={{ duration:0.2 }}
+            >
+              {page === "live"
+                ? <LiveRider datasets={datasets} onAddRide={onAddRide} rides={rides} />
+                : <StatsPage datasets={datasets} setDatasets={setDatasets} />}
+            </motion.div>
+          </AnimatePresence>
+        </main>
 
-      <footer className="max-w-6xl mx-auto px-4 pb-8 text-xs text-black/60">
-        This is a personal tracker. Fleet ranges and terminals can change; refine in Stats.
-      </footer>
-    </div>
+        <footer style={{ borderTop:"1px solid var(--border)", padding:"1.25rem max(1rem, env(safe-area-inset-left))", textAlign:"center", color:"var(--muted)", fontSize:"0.8rem", letterSpacing:"0.04em" }}>
+          HaveIRidden? · Personal NYC Subway Tracker · Fleet data is user-editable — refine in Stats.
+        </footer>
+      </div>
+    </>
   );
 }
