@@ -5,7 +5,7 @@
     { "model": "R62A", "ranges": [[1651, 2475]], "division": "A" },
     { "model": "R68", "ranges": [[2500, 2924]], "division": "B" },
     { "model": "R179", "ranges": [[3010, 3327]], "division": "B" },
-    { "model": "R211A", "ranges": [[3400, 4039], [4060, 4499]], "division": "B" },
+    { "model": "R211A", "ranges": [[3400, 4039], [4040, 4499]], "division": "B" },
     { "model": "R211T", "ranges": [[4040, 4059]], "division": "B" },
     { "model": "R68A", "ranges": [[5001, 5200]], "division": "B" },
     { "model": "R46", "ranges": [[5482, 6258]], "division": "B" },
