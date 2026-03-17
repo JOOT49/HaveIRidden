@@ -82,4 +82,4 @@ You can export your ride history as a JSON file from **Stats → History → Exp
 
 ## License
 
-Personal project. Do whatever you want with it.
+MIT License
