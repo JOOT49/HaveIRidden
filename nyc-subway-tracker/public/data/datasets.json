@@ -12,9 +12,7 @@
     { "model": "R142 / R188", "ranges": [[7211, 7936]], "division": "A" },
     { "model": "R143", "ranges": [[8101, 8312]], "division": "B" },
     { "model": "R160", "ranges": [[8313, 9974]], "division": "B" }
-  ]
-
-
+  ],
   "lines": [
     { "id": "1", "label": "1", "division": "A", "color": "#EE352E", "terminals": ["Van Cortlandt Park–242 St", "South Ferry"] },
     { "id": "2", "label": "2", "division": "A", "color": "#EE352E", "terminals": ["Wakefield–241 St", "Flatbush Av–Brooklyn College"] },

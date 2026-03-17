@@ -36,9 +36,36 @@ function useCookieRides() {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   INLINE DATASETS  (no fetch needed — editable in localStorage)
+   DATASETS  — fetched from /data/datasets.json on load.
+   User edits (via Settings) are saved to localStorage and take
+   priority.  "Reset to defaults" clears localStorage so the next
+   load re-fetches fresh data from the server.
 ───────────────────────────────────────────────────────────────── */
-const DEFAULT_DATASETS = {
+async function fetchRemoteDatasets() {
+  const res = await fetch(`/data/datasets.json?v=${Date.now()}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+function getUserDatasets() {
+  try {
+    const saved = localStorage.getItem(DATA_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDatasets(ds) {
+  localStorage.setItem(DATA_KEY, JSON.stringify(ds));
+}
+
+function clearUserDatasets() {
+  localStorage.removeItem(DATA_KEY);
+}
+
+// Minimal fallback used only if fetch fails AND no localStorage data exists
+const FALLBACK_DATASETS = {
   rollingStock: [
     { model: "R62",  ranges: [[1301,1390],[1601,1625]], division: "A" },
     { model: "R62A", ranges: [[1651,2150]],             division: "A" },
@@ -80,19 +107,6 @@ const DEFAULT_DATASETS = {
     { id:"SIR", label:"SIR", division:"SIR", color:"#0039A6", textColor:"#fff", terminals:["St George","Tottenville"] },
   ],
 };
-
-function getDatasets() {
-  try {
-    const saved = localStorage.getItem(DATA_KEY);
-    return saved ? JSON.parse(saved) : DEFAULT_DATASETS;
-  } catch {
-    return DEFAULT_DATASETS;
-  }
-}
-
-function saveDatasets(ds) {
-  localStorage.setItem(DATA_KEY, JSON.stringify(ds));
-}
 
 function detectModelFromNumber(numStr, rollingStock) {
   const n = parseInt(numStr, 10);
@@ -340,7 +354,7 @@ function LiveRider({ datasets, onAddRide }) {
 /* ─────────────────────────────────────────────────────────────────
    STATS / MANAGER PAGE
 ───────────────────────────────────────────────────────────────── */
-function StatsPage({ datasets, setDatasets }) {
+function StatsPage({ datasets, setDatasets, datasetsSource, onResetToRemote }) {
   const [rides, setRides] = useCookieRides();
   const [tab, setTab] = useState("progress");
   const [query, setQuery] = useState("");
@@ -380,9 +394,9 @@ function StatsPage({ datasets, setDatasets }) {
     reader.readAsText(file);
   }
 
-  /* Dataset editors */
-  function save() { saveDatasets(datasets); alert("Saved!"); }
-  function reset() { if (confirm("Reset datasets to defaults?")) { saveDatasets(DEFAULT_DATASETS); setDatasets(DEFAULT_DATASETS); } }
+  /* Dataset editors — setDatasets now auto-saves to localStorage via handleSetDatasets in App */
+  function save() { setDatasets(datasets); alert("Saved to your device!"); }
+  function reset() { if (confirm("Reset to server defaults? Your local edits will be cleared.")) { onResetToRemote(); } }
 
   function updateLine(idx, field, value) {
     setDatasets((d) => ({ ...d, lines: d.lines.map((l, i) => i === idx ? { ...l, [field]: value } : l) }));
@@ -598,7 +612,23 @@ function StatsPage({ datasets, setDatasets }) {
       {tab === "settings" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 
-          {/* Rolling Stock */}
+          {/* Data source banner */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: "0.6rem",
+            padding: "0.65rem 1rem", borderRadius: 10,
+            background: datasetsSource === "user" ? "rgba(252,204,10,0.08)" : "rgba(74,222,128,0.08)",
+            border: `1px solid ${datasetsSource === "user" ? "rgba(252,204,10,0.25)" : "rgba(74,222,128,0.25)"}`,
+            fontSize: "0.82rem", color: "rgba(255,255,255,0.6)",
+          }}>
+            <span style={{ fontSize: "1rem" }}>{datasetsSource === "user" ? "✏️" : "🌐"}</span>
+            <span>
+              {datasetsSource === "user"
+                ? <><strong style={{ color: "#FCCC0A" }}>Using your local edits.</strong> These override the server data.</>
+                : <><strong style={{ color: "#4ade80" }}>Live from server.</strong> Edit below and Save to customise locally.</>}
+            </span>
+          </div>
+
+
           <div style={cardStyle}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
               <span style={sectionHeadStyle}>Rolling Stock Ranges</span>
@@ -759,11 +789,49 @@ function SmallBtn({ children, onClick, danger, green, ...rest }) {
 ───────────────────────────────────────────────────────────────── */
 export default function App() {
   const [page, setPage] = useState("live");
-  const [datasets, setDatasets] = useState(getDatasets);
+  const [datasets, setDatasets] = useState(null);   // null = loading
+  const [datasetsSource, setDatasetsSource] = useState("remote"); // "remote" | "user"
   const [rides, setRides] = useCookieRides();
+
+  // On mount: if user has local edits use those, otherwise fetch remote JSON
+  useEffect(() => {
+    const userDs = getUserDatasets();
+    if (userDs) {
+      setDatasets(userDs);
+      setDatasetsSource("user");
+    } else {
+      fetchRemoteDatasets()
+        .then((ds) => { setDatasets(ds); setDatasetsSource("remote"); })
+        .catch(() => { setDatasets(FALLBACK_DATASETS); setDatasetsSource("remote"); });
+    }
+  }, []);
 
   function onAddRide(ride) {
     setRides((prev) => [...prev, ride]);
+  }
+
+  function handleSetDatasets(ds) {
+    setDatasets(ds);
+    saveDatasets(ds);
+    setDatasetsSource("user");
+  }
+
+  function handleResetToRemote() {
+    clearUserDatasets();
+    setDatasetsSource("remote");
+    fetchRemoteDatasets()
+      .then((ds) => setDatasets(ds))
+      .catch(() => setDatasets(FALLBACK_DATASETS));
+  }
+
+  if (!datasets) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#111116", color: "#f0f0f4", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Barlow', system-ui, sans-serif" }}>
+        <div style={{ textAlign: "center", opacity: 0.5 }}>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: "1.5rem", letterSpacing: "0.04em" }}>Loading fleet data…</div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -822,7 +890,7 @@ export default function App() {
         >
           {page === "live"
             ? <LiveRider datasets={datasets} onAddRide={onAddRide} />
-            : <StatsPage datasets={datasets} setDatasets={setDatasets} />}
+            : <StatsPage datasets={datasets} setDatasets={handleSetDatasets} datasetsSource={datasetsSource} onResetToRemote={handleResetToRemote} />}
         </motion.div>
       </AnimatePresence>
 
