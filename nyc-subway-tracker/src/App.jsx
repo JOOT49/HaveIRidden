@@ -50,7 +50,7 @@ const DEFAULT_DATASETS = {
     { model: "R160A",ranges: [[8313,8652]],             division: "B" },
     { model: "R160B",ranges: [[8713,9942]],             division: "B" },
     { model: "R179", ranges: [[3010,3327]],             division: "B" },
-    { model: "R211A",ranges: [[4000,4499]],             division: "B" },
+    { model: "R211A",ranges: [[3400,4499]],             division: "B" },
     { model: "R211S (SIR)", ranges: [[100,199]],        division: "SIR" },
   ],
   lines: [
