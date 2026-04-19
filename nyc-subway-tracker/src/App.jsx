@@ -4,22 +4,17 @@ import "./App.css";
 
 /* ─────────────────────────────────────────────────────────────────
    SYSTEM SELECTION (stored in cookie)
-   On first load, show selector. Remember choice for 400 days.
 ───────────────────────────────────────────────────────────────── */
 const SYSTEM_COOKIE = "transit_system_v1";
 
 function readSystemCookie() {
   try {
-    const match = document.cookie
-      .split(";")
-      .map((c) => c.trim())
-      .find((c) => c.startsWith(`${SYSTEM_COOKIE}=`));
+    const match = document.cookie.split(";").map((c) => c.trim()).find((c) => c.startsWith(`${SYSTEM_COOKIE}=`));
     if (!match) return null;
     const val = match.split("=")[1];
     return ["nyc", "dc"].includes(val) ? val : null;
   } catch { return null; }
 }
-
 function writeSystemCookie(system) {
   document.cookie = `${SYSTEM_COOKIE}=${system}; Max-Age=${60 * 60 * 24 * 400}; Path=/`;
 }
@@ -50,39 +45,29 @@ function NYCVisual() {
   return (
     <div style={{display:"flex",flexWrap:"wrap",gap:"0.5rem",padding:"1rem",justifyContent:"center"}}>
       {lines.map((l,i) => (
-        <motion.div
-          key={l.label}
-          initial={{scale:0,rotate:-10}}
-          animate={{scale:1,rotate:0}}
+        <motion.div key={l.label} initial={{scale:0,rotate:-10}} animate={{scale:1,rotate:0}}
           transition={{delay:0.05+i*0.06,type:"spring",stiffness:200}}
-          style={{
-            width:44,height:44,borderRadius:"50%",background:l.color,
-            color:l.tc||"#fff",display:"flex",alignItems:"center",justifyContent:"center",
+          style={{width:44,height:44,borderRadius:"50%",background:l.color,color:l.tc||"#fff",
+            display:"flex",alignItems:"center",justifyContent:"center",
             fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"1.05rem",
-            boxShadow:`0 4px 16px ${l.color}55`,
-          }}
-        >{l.label}</motion.div>
+            boxShadow:`0 4px 16px ${l.color}55`}}>
+          {l.label}
+        </motion.div>
       ))}
     </div>
   );
 }
 
 function DCVisual() {
-  const dcLines = [
-    {color:"#BF0D3E"},{color:"#009CDE"},{color:"#ED8B00"},
-    {color:"#919D9D"},{color:"#00B140"},{color:"#FFD100"},
-  ];
+  const dcLines = [{color:"#BF0D3E"},{color:"#009CDE"},{color:"#ED8B00"},{color:"#919D9D"},{color:"#00B140"},{color:"#FFD100"}];
   return (
     <svg width="200" height="110" viewBox="0 0 200 110" fill="none">
       <path d="M20 100 Q20 20 100 20 Q180 20 180 100" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" fill="none"/>
       {[0.2,0.35,0.5,0.65,0.8].map((t,i)=>{
-        const x=20+t*160;
-        const yTop=20+Math.pow(t-0.5,2)*160;
+        const x=20+t*160; const yTop=20+Math.pow(t-0.5,2)*160;
         return <line key={i} x1={x} y1={yTop} x2={x} y2={100} stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>;
       })}
-      {dcLines.map((l,i)=>(
-        <rect key={l.color} x={20+i*(160/6)} y={98} width={160/6} height={4} fill={l.color} opacity={0.75}/>
-      ))}
+      {dcLines.map((l,i)=>(<rect key={l.color} x={20+i*(160/6)} y={98} width={160/6} height={4} fill={l.color} opacity={0.75}/>))}
       <line x1={20} y1={102} x2={180} y2={102} stroke="rgba(255,255,255,0.1)" strokeWidth={1}/>
     </svg>
   );
@@ -91,68 +76,34 @@ function DCVisual() {
 function SystemCard({ id, label, description, features, onSelect, delay }) {
   const isNYC = id === "nyc";
   return (
-    <motion.button
-      initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
-      transition={{delay,duration:0.4,ease:"easeOut"}}
-      whileHover={{scale:1.02}} whileTap={{scale:0.98}}
+    <motion.button initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
+      transition={{delay,duration:0.4,ease:"easeOut"}} whileHover={{scale:1.02}} whileTap={{scale:0.98}}
       onClick={()=>onSelect(id)}
-      style={{
-        position:"relative",width:"100%",maxWidth:320,background:"transparent",
-        border:"none",cursor:"pointer",padding:0,textAlign:"left",borderRadius:0,overflow:"hidden",
-      }}
-    >
-      <div style={{
-        border:"1px solid rgba(255,255,255,0.1)",
-        borderRadius:isNYC?0:4,overflow:"hidden",
-        background:isNYC?"#111116":"#0d0e0f",
-      }}>
-        <div style={{
-          height:140,position:"relative",overflow:"hidden",
-          display:"flex",alignItems:"center",justifyContent:"center",
-          background:isNYC?"linear-gradient(135deg,#111116 0%,#1a1a22 100%)":"linear-gradient(135deg,#0d0e0f 0%,#14161a 100%)",
-        }}>
+      style={{position:"relative",width:"100%",maxWidth:320,background:"transparent",border:"none",cursor:"pointer",padding:0,textAlign:"left",borderRadius:0,overflow:"hidden"}}>
+      <div style={{border:"1px solid rgba(255,255,255,0.1)",borderRadius:isNYC?0:4,overflow:"hidden",background:isNYC?"#111116":"#0d0e0f"}}>
+        <div style={{height:140,position:"relative",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",
+          background:isNYC?"linear-gradient(135deg,#111116 0%,#1a1a22 100%)":"linear-gradient(135deg,#0d0e0f 0%,#14161a 100%)"}}>
           {isNYC ? <NYCVisual/> : <DCVisual/>}
         </div>
         <div style={{padding:"1.25rem",borderTop:`3px solid ${isNYC?"#FCCC0A":"rgba(255,255,255,0.15)"}`}}>
-          <div style={{
-            fontFamily:isNYC?"'Barlow Condensed',sans-serif":"'IBM Plex Sans',sans-serif",
-            fontWeight:isNYC?900:500,
-            fontSize:isNYC?"1.5rem":"1rem",
-            letterSpacing:isNYC?"0.04em":"0.12em",
-            textTransform:isNYC?"none":"uppercase",
-            color:"#f0f0f4",marginBottom:"0.3rem",
-          }}>{label}</div>
-          <div style={{
-            fontFamily:isNYC?"'Barlow',sans-serif":"'IBM Plex Mono',monospace",
-            fontSize:isNYC?"0.82rem":"0.68rem",
-            color:"rgba(240,240,244,0.4)",
-            letterSpacing:isNYC?"0":"0.08em",lineHeight:1.5,
-          }}>{description}</div>
+          <div style={{fontFamily:isNYC?"'Barlow Condensed',sans-serif":"'IBM Plex Sans',sans-serif",fontWeight:isNYC?900:500,
+            fontSize:isNYC?"1.5rem":"1rem",letterSpacing:isNYC?"0.04em":"0.12em",textTransform:isNYC?"none":"uppercase",
+            color:"#f0f0f4",marginBottom:"0.3rem"}}>{label}</div>
+          <div style={{fontFamily:isNYC?"'Barlow',sans-serif":"'IBM Plex Mono',monospace",fontSize:isNYC?"0.82rem":"0.68rem",
+            color:"rgba(240,240,244,0.4)",letterSpacing:isNYC?"0":"0.08em",lineHeight:1.5}}>{description}</div>
           <div style={{display:"flex",gap:"0.35rem",flexWrap:"wrap",marginTop:"0.85rem"}}>
             {features.map(f=>(
-              <span key={f} style={{
-                padding:"0.2rem 0.5rem",
-                background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",
-                borderRadius:isNYC?4:2,
-                fontFamily:isNYC?"'Barlow',sans-serif":"'IBM Plex Mono',monospace",
-                fontSize:"0.65rem",color:"rgba(255,255,255,0.35)",letterSpacing:"0.04em",
-              }}>{f}</span>
+              <span key={f} style={{padding:"0.2rem 0.5rem",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",
+                borderRadius:isNYC?4:2,fontFamily:isNYC?"'Barlow',sans-serif":"'IBM Plex Mono',monospace",
+                fontSize:"0.65rem",color:"rgba(255,255,255,0.35)",letterSpacing:"0.04em"}}>{f}</span>
             ))}
           </div>
         </div>
-        <div style={{
-          padding:"0.85rem 1.25rem",background:"rgba(255,255,255,0.025)",
-          borderTop:"1px solid rgba(255,255,255,0.07)",
-          display:"flex",alignItems:"center",justifyContent:"space-between",
-        }}>
-          <span style={{
-            fontFamily:isNYC?"'Barlow Condensed',sans-serif":"'IBM Plex Mono',monospace",
-            fontWeight:isNYC?800:500,
-            fontSize:isNYC?"0.88rem":"0.7rem",
-            letterSpacing:isNYC?"0.06em":"0.12em",
-            textTransform:"uppercase",
-            color:isNYC?"#FCCC0A":"rgba(232,230,224,0.5)",
-          }}>Select →</span>
+        <div style={{padding:"0.85rem 1.25rem",background:"rgba(255,255,255,0.025)",borderTop:"1px solid rgba(255,255,255,0.07)",
+          display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span style={{fontFamily:isNYC?"'Barlow Condensed',sans-serif":"'IBM Plex Mono',monospace",fontWeight:isNYC?800:500,
+            fontSize:isNYC?"0.88rem":"0.7rem",letterSpacing:isNYC?"0.06em":"0.12em",textTransform:"uppercase",
+            color:isNYC?"#FCCC0A":"rgba(232,230,224,0.5)"}}>Select →</span>
         </div>
       </div>
     </motion.button>
@@ -170,39 +121,23 @@ function SystemSelector({ onSelect }) {
       <div className="sys-root">
         <div className="sys-grid-bg"/>
         <div style={{position:"relative",zIndex:1,width:"100%",maxWidth:760}}>
-          <motion.div
-            initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}}
-            transition={{duration:0.5}}
-            style={{textAlign:"center",marginBottom:"2.5rem"}}
-          >
-            <div style={{
-              fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.65rem",
-              letterSpacing:"0.2em",textTransform:"uppercase",
-              color:"rgba(255,255,255,0.25)",marginBottom:"0.75rem",
-            }}>HaveIRidden?</div>
-            <h1 style={{
-              fontFamily:"'EB Garamond',Georgia,serif",fontStyle:"italic",
-              fontWeight:400,fontSize:"clamp(1.8rem,5vw,2.6rem)",
-              color:"#f0f0f4",margin:0,letterSpacing:"0.01em",lineHeight:1.15,
-            }}>Which system do you ride?</h1>
-            <p style={{
-              marginTop:"0.6rem",fontFamily:"'IBM Plex Sans',sans-serif",
-              fontSize:"0.85rem",color:"rgba(255,255,255,0.3)",letterSpacing:"0.02em",
-            }}>Your choice is saved — you can switch anytime from the header.</p>
+          <motion.div initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} transition={{duration:0.5}}
+            style={{textAlign:"center",marginBottom:"2.5rem"}}>
+            <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.65rem",letterSpacing:"0.2em",textTransform:"uppercase",
+              color:"rgba(255,255,255,0.25)",marginBottom:"0.75rem"}}>HaveIRidden?</div>
+            <h1 style={{fontFamily:"'EB Garamond',Georgia,serif",fontStyle:"italic",fontWeight:400,
+              fontSize:"clamp(1.8rem,5vw,2.6rem)",color:"#f0f0f4",margin:0,letterSpacing:"0.01em",lineHeight:1.15}}>
+              Which system do you ride?</h1>
+            <p style={{marginTop:"0.6rem",fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.85rem",
+              color:"rgba(255,255,255,0.3)",letterSpacing:"0.02em"}}>Your choice is saved — you can switch anytime from the header.</p>
           </motion.div>
           <div style={{display:"flex",gap:"1.25rem",justifyContent:"center",flexWrap:"wrap"}}>
-            {systems.map((s,i) => (
-              <SystemCard key={s.id} {...s} onSelect={onSelect} delay={0.2+i*0.1}/>
-            ))}
+            {systems.map((s,i) => (<SystemCard key={s.id} {...s} onSelect={onSelect} delay={0.2+i*0.1}/>))}
           </div>
-          <motion.div
-            initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.7}}
-            style={{
-              marginTop:"2rem",textAlign:"center",
-              fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.58rem",
-              color:"rgba(255,255,255,0.15)",letterSpacing:"0.08em",textTransform:"uppercase",
-            }}
-          >All data stored locally in your browser · No account required</motion.div>
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.7}}
+            style={{marginTop:"2rem",textAlign:"center",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.58rem",
+              color:"rgba(255,255,255,0.15)",letterSpacing:"0.08em",textTransform:"uppercase"}}>
+            All data stored locally in your browser · No account required</motion.div>
         </div>
       </div>
     </>
@@ -213,7 +148,10 @@ function SystemSelector({ onSelect }) {
    COOKIE + LOCALSTORAGE HELPERS (NYC)
 ───────────────────────────────────────────────────────────────── */
 const COOKIE_NAME = "nyc_subway_rides";
-const DATA_KEY = "nyc_subway_datasets_v1";
+// FIX: separate keys for user-edited datasets vs remote cache
+const USER_DATA_KEY = "nyc_subway_datasets_v1";
+const REMOTE_CACHE_KEY = "nyc_subway_remote_cache_v1";
+const REMOTE_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 function readRidesFromCookie() {
   try {
@@ -229,10 +167,12 @@ function writeRidesToCookie(rides) {
     document.cookie = `${COOKIE_NAME}=${value}; Max-Age=${60*60*24*400}; Path=/`;
   } catch {}
 }
+
+// FIX: single source of truth for rides — only used in NYCApp, passed as props
 function useCookieRides() {
-  const [rides,setRides] = useState(readRidesFromCookie);
-  useEffect(()=>writeRidesToCookie(rides),[rides]);
-  return [rides,setRides];
+  const [rides, setRides] = useState(readRidesFromCookie);
+  useEffect(() => writeRidesToCookie(rides), [rides]);
+  return [rides, setRides];
 }
 
 async function fetchRemoteDatasets() {
@@ -240,25 +180,45 @@ async function fetchRemoteDatasets() {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
-function getUserDatasets() {
-  try { const s=localStorage.getItem(DATA_KEY); return s?JSON.parse(s):null; } catch { return null; }
+
+// Remote cache: saves fetched data + timestamp so the app works offline instantly
+function getRemoteCache() {
+  try {
+    const raw = localStorage.getItem(REMOTE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed.data || !parsed.timestamp) return null;
+    return parsed;
+  } catch { return null; }
 }
-function saveDatasets(ds) { localStorage.setItem(DATA_KEY,JSON.stringify(ds)); }
-function clearUserDatasets() { localStorage.removeItem(DATA_KEY); }
+function saveRemoteCache(data) {
+  try { localStorage.setItem(REMOTE_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() })); } catch {}
+}
+function clearRemoteCache() {
+  try { localStorage.removeItem(REMOTE_CACHE_KEY); } catch {}
+}
+
+// User edits: saved separately, take priority over remote cache
+function getUserDatasets() {
+  try { const s = localStorage.getItem(USER_DATA_KEY); return s ? JSON.parse(s) : null; } catch { return null; }
+}
+function saveUserDatasets(ds) { localStorage.setItem(USER_DATA_KEY, JSON.stringify(ds)); }
+function clearUserDatasets() { localStorage.removeItem(USER_DATA_KEY); }
 
 const FALLBACK_DATASETS = {
   rollingStock:[
     {model:"R62",ranges:[[1301,1390],[1601,1625]],division:"A"},
     {model:"R62A",ranges:[[1651,2150]],division:"A"},
-    {model:"R142",ranges:[[6301,6899]],division:"A"},
-    {model:"R142A",ranges:[[7211,7590]],division:"A"},
-    {model:"R188",ranges:[[7811,7936]],division:"A"},
-    {model:"R68",ranges:[[2500,2790]],division:"B"},
-    {model:"R68A",ranges:[[5001,5296]],division:"B"},
-    {model:"R160A",ranges:[[8313,8652]],division:"B"},
-    {model:"R160B",ranges:[[8713,9942]],division:"B"},
+    {model:"R142",ranges:[[1101,1250],[6300,7180]],division:"A"},
+    {model:"R142 / R188",ranges:[[7211,7936]],division:"A"},
+    {model:"R68",ranges:[[2500,2924]],division:"B"},
     {model:"R179",ranges:[[3010,3327]],division:"B"},
     {model:"R211A",ranges:[[3400,4499]],division:"B"},
+    {model:"R211T",ranges:[[4040,4059]],division:"B"},
+    {model:"R68A",ranges:[[5001,5200]],division:"B"},
+    {model:"R46",ranges:[[5482,6258]],division:"B"},
+    {model:"R143",ranges:[[8101,8312]],division:"B"},
+    {model:"R160",ranges:[[8313,9974]],division:"B"},
     {model:"R211S (SIR)",ranges:[[100,199]],division:"SIR"},
   ],
   lines:[
@@ -289,41 +249,38 @@ const FALLBACK_DATASETS = {
   ],
 };
 
-function detectModelFromNumber(numStr,rollingStock) {
-  const n=parseInt(numStr,10);
-  if(Number.isNaN(n)) return null;
-  for(const entry of rollingStock)
-    for(const [lo,hi] of entry.ranges)
-      if(n>=lo&&n<=hi) return {model:entry.model,division:entry.division};
+function detectModelFromNumber(numStr, rollingStock) {
+  const n = parseInt(numStr, 10);
+  if (Number.isNaN(n)) return null;
+  for (const entry of rollingStock)
+    for (const [lo, hi] of entry.ranges)
+      if (n >= lo && n <= hi) return { model: entry.model, division: entry.division };
   return null;
 }
 
 /* ─────────────────────────────────────────────────────────────────
    SHARED UI (NYC)
 ───────────────────────────────────────────────────────────────── */
-function LineBullet({label,color,textColor="#fff",size=48,selected,onClick}){
-  return(
+function LineBullet({ label, color, textColor="#fff", size=48, selected, onClick }) {
+  return (
     <button onClick={onClick} title={`Line ${label}`} style={{
-      width:size,height:size,minWidth:size,borderRadius:"50%",
-      background:color,color:textColor,fontWeight:900,fontSize:size*0.38,
-      fontFamily:"'Barlow Condensed','Arial Narrow',sans-serif",
+      width:size,height:size,minWidth:size,borderRadius:"50%",background:color,color:textColor,
+      fontWeight:900,fontSize:size*0.38,fontFamily:"'Barlow Condensed','Arial Narrow',sans-serif",
       border:selected?"3px solid #FCCC0A":"3px solid transparent",
       boxShadow:selected?`0 0 0 3px rgba(252,204,10,0.4),0 4px 16px ${color}66`:`0 2px 8px ${color}44`,
-      transform:selected?"scale(1.15)":"scale(1)",
-      transition:"all 0.15s ease",cursor:onClick?"pointer":"default",
-      display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,lineHeight:1,
-    }}>{label}</button>
+      transform:selected?"scale(1.15)":"scale(1)",transition:"all 0.15s ease",
+      cursor:onClick?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",
+      flexShrink:0,lineHeight:1}}>
+      {label}
+    </button>
   );
 }
 
-function ProgressBar({value,color="#00933C"}){
-  return(
+function ProgressBar({ value, color="#00933C" }) {
+  return (
     <div style={{width:"100%",height:8,background:"rgba(255,255,255,0.1)",borderRadius:4,overflow:"hidden"}}>
-      <motion.div
-        initial={{width:0}} animate={{width:`${Math.min(100,value)}%`}}
-        transition={{duration:0.7,ease:"easeOut"}}
-        style={{height:"100%",background:color,borderRadius:4}}
-      />
+      <motion.div initial={{width:0}} animate={{width:`${Math.min(100,value)}%`}}
+        transition={{duration:0.7,ease:"easeOut"}} style={{height:"100%",background:color,borderRadius:4}}/>
     </div>
   );
 }
@@ -331,66 +288,83 @@ function ProgressBar({value,color="#00933C"}){
 /* ─────────────────────────────────────────────────────────────────
    NYC LIVE RIDER
 ───────────────────────────────────────────────────────────────── */
-const DIV_LABELS={A:"A Division · IRT",B:"B Division · IND/BMT",SIR:"Staten Island Rwy"};
+const DIV_LABELS = { A:"A Division · IRT", B:"B Division · IND/BMT", SIR:"Staten Island Rwy" };
 
-function LiveRider({datasets,onAddRide}){
-  const [trainNumber,setTrainNumber]=useState("");
-  const [selectedLine,setSelectedLine]=useState(null);
-  const [lastRide,setLastRide]=useState(null);
-  const found=useMemo(()=>detectModelFromNumber(trainNumber,datasets.rollingStock),[trainNumber,datasets.rollingStock]);
-  const linesByDivision=useMemo(()=>{
-    const map={};
-    datasets.lines.forEach(l=>{if(!map[l.division])map[l.division]=[];map[l.division].push(l);});
+// FIX: rides and setRides now come from props (lifted state in NYCApp)
+function LiveRider({ datasets, rides, setRides }) {
+  const [trainNumber, setTrainNumber] = useState("");
+  const [selectedLine, setSelectedLine] = useState(null);
+  const [lastRide, setLastRide] = useState(null);
+  const found = useMemo(() => detectModelFromNumber(trainNumber, datasets.rollingStock), [trainNumber, datasets.rollingStock]);
+  const linesByDivision = useMemo(() => {
+    const map = {};
+    datasets.lines.forEach(l => { if (!map[l.division]) map[l.division] = []; map[l.division].push(l); });
     return map;
-  },[datasets.lines]);
+  }, [datasets.lines]);
 
-  function handleLog(){
-    if(!trainNumber||!selectedLine)return;
-    const ride={id:crypto.randomUUID(),trainNumber:trainNumber.trim(),line:selectedLine.id,lineLabel:selectedLine.label,lineColor:selectedLine.color,lineTextColor:selectedLine.textColor||"#fff",model:found?.model||"Unknown",division:found?.division||"?",timestamp:new Date().toISOString()};
-    onAddRide(ride);setLastRide(ride);setTrainNumber("");
+  function handleLog() {
+    if (!trainNumber || !selectedLine) return;
+    const ride = {
+      id: crypto.randomUUID(), trainNumber: trainNumber.trim(),
+      line: selectedLine.id, lineLabel: selectedLine.label, lineColor: selectedLine.color,
+      lineTextColor: selectedLine.textColor || "#fff", model: found?.model || "Unknown",
+      division: found?.division || "?", timestamp: new Date().toISOString()
+    };
+    setRides(prev => [...prev, ride]);
+    setLastRide(ride);
+    setTrainNumber("");
   }
 
-  const canLog=trainNumber.length>0&&selectedLine;
-  return(
+  const canLog = trainNumber.length > 0 && selectedLine;
+  return (
     <div style={{maxWidth:640,margin:"0 auto",padding:"1.5rem 1rem 3rem"}}>
       <div style={{marginBottom:"1.5rem"}}>
         <label style={labelStyle}>Train Car Number</label>
         <input type="text" inputMode="numeric" placeholder="e.g. 8778" value={trainNumber}
-          onChange={e=>setTrainNumber(e.target.value.replace(/[^0-9]/g,""))}
-          onKeyDown={e=>e.key==="Enter"&&handleLog()}
-          style={{...inputStyle,fontSize:"2.4rem",fontWeight:800,textAlign:"center",letterSpacing:"0.15em",padding:"0.8rem"}}
-        />
+          onChange={e => setTrainNumber(e.target.value.replace(/[^0-9]/g, ""))}
+          onKeyDown={e => e.key === "Enter" && handleLog()}
+          style={{...inputStyle,fontSize:"2.4rem",fontWeight:800,textAlign:"center",letterSpacing:"0.15em",padding:"0.8rem"}}/>
       </div>
       <AnimatePresence>
-        {trainNumber&&selectedLine&&(
+        {trainNumber && selectedLine && (
           <motion.div key="preview" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
-            style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:16,padding:"1.25rem 1.5rem",textAlign:"center",marginBottom:"1.5rem"}}>
+            style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:16,
+              padding:"1.25rem 1.5rem",textAlign:"center",marginBottom:"1.5rem"}}>
             <div style={{fontSize:"1rem",color:"rgba(255,255,255,0.55)",marginBottom:"0.4rem"}}>You're riding a</div>
-            <div style={{fontSize:"2.8rem",fontWeight:900,fontFamily:"'Barlow Condensed',sans-serif",lineHeight:1,color:found?"#4ade80":"#f87171"}}>{found?.model||"Unknown"}</div>
-            <div style={{marginTop:"0.5rem",fontSize:"1.05rem",color:"rgba(255,255,255,0.6)"}}>on the <span style={{color:selectedLine.color,fontWeight:700}}>{selectedLine.label}</span> line 🚇</div>
-            {!found&&<div style={{marginTop:"0.5rem",fontSize:"0.78rem",color:"#f87171"}}>Car not found — check number or update ranges in Stats → Settings</div>}
+            <div style={{fontSize:"2.8rem",fontWeight:900,fontFamily:"'Barlow Condensed',sans-serif",lineHeight:1,color:found?"#4ade80":"#f87171"}}>
+              {found?.model || "Unknown"}</div>
+            <div style={{marginTop:"0.5rem",fontSize:"1.05rem",color:"rgba(255,255,255,0.6)"}}>
+              on the <span style={{color:selectedLine.color,fontWeight:700}}>{selectedLine.label}</span> line 🚇</div>
+            {!found && <div style={{marginTop:"0.5rem",fontSize:"0.78rem",color:"#f87171"}}>
+              Car not found — check number or update ranges in Stats → Settings</div>}
           </motion.div>
         )}
       </AnimatePresence>
       <div style={{marginBottom:"1.5rem"}}>
         <label style={labelStyle}>Select Line</label>
-        {Object.entries(linesByDivision).map(([div,lines])=>(
+        {Object.entries(linesByDivision).map(([div, lines]) => (
           <div key={div} style={{marginBottom:"1rem"}}>
-            <div style={{fontSize:"0.7rem",color:"rgba(255,255,255,0.35)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"0.6rem"}}>{DIV_LABELS[div]||div}</div>
+            <div style={{fontSize:"0.7rem",color:"rgba(255,255,255,0.35)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"0.6rem"}}>
+              {DIV_LABELS[div] || div}</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:"0.55rem"}}>
-              {lines.map(l=><LineBullet key={l.id} label={l.label} color={l.color} textColor={l.textColor} size={54} selected={selectedLine?.id===l.id} onClick={()=>setSelectedLine(prev=>prev?.id===l.id?null:l)}/>)}
+              {lines.map(l => <LineBullet key={l.id} label={l.label} color={l.color} textColor={l.textColor} size={54}
+                selected={selectedLine?.id === l.id} onClick={() => setSelectedLine(prev => prev?.id === l.id ? null : l)}/>)}
             </div>
           </div>
         ))}
       </div>
-      <motion.button onClick={handleLog} disabled={!canLog} whileTap={canLog?{scale:0.97}:{}}
-        style={{width:"100%",padding:"1rem",borderRadius:14,border:"none",background:canLog?"#FCCC0A":"rgba(255,255,255,0.08)",color:canLog?"#000":"rgba(255,255,255,0.3)",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"1.3rem",letterSpacing:"0.08em",cursor:canLog?"pointer":"not-allowed",transition:"background 0.2s,color 0.2s",marginBottom:"1.5rem"}}>
+      <motion.button onClick={handleLog} disabled={!canLog} whileTap={canLog ? {scale:0.97} : {}}
+        style={{width:"100%",padding:"1rem",borderRadius:14,border:"none",
+          background:canLog?"#FCCC0A":"rgba(255,255,255,0.08)",color:canLog?"#000":"rgba(255,255,255,0.3)",
+          fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"1.3rem",letterSpacing:"0.08em",
+          cursor:canLog?"pointer":"not-allowed",transition:"background 0.2s,color 0.2s",marginBottom:"1.5rem"}}>
         LOG RIDE →
       </motion.button>
       <AnimatePresence>
-        {lastRide&&(
+        {lastRide && (
           <motion.div key={lastRide.id} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0}}
-            style={{display:"flex",alignItems:"center",gap:"1rem",background:"rgba(0,147,60,0.15)",border:"1px solid rgba(0,147,60,0.4)",borderRadius:14,padding:"1rem 1.25rem"}}>
+            style={{display:"flex",alignItems:"center",gap:"1rem",background:"rgba(0,147,60,0.15)",
+              border:"1px solid rgba(0,147,60,0.4)",borderRadius:14,padding:"1rem 1.25rem"}}>
             <LineBullet label={lastRide.lineLabel} color={lastRide.lineColor} textColor={lastRide.lineTextColor} size={46}/>
             <div>
               <div style={{fontWeight:700,fontSize:"1rem"}}>✓ Ride logged!</div>
@@ -405,53 +379,76 @@ function LiveRider({datasets,onAddRide}){
 
 /* ─────────────────────────────────────────────────────────────────
    NYC STATS PAGE
+   FIX: rides/setRides are props, not local state. No more split brain.
 ───────────────────────────────────────────────────────────────── */
-function StatsPage({datasets,setDatasets,datasetsSource,onResetToRemote}){
-  const [rides,setRides]=useCookieRides();
-  const [tab,setTab]=useState("progress");
-  const [query,setQuery]=useState("");
-  const riddenModels=useMemo(()=>new Set(rides.map(r=>r.model)),[rides]);
-  const riddenLines=useMemo(()=>new Set(rides.map(r=>r.line)),[rides]);
-  const modelPct=datasets.rollingStock.length?(riddenModels.size/datasets.rollingStock.length)*100:0;
-  const linePct=datasets.lines.length?(riddenLines.size/datasets.lines.length)*100:0;
-  function deleteRide(id){setRides(prev=>prev.filter(r=>r.id!==id));}
-  function clearRides(){if(confirm("Delete ALL rides?"))setRides([]);}
-  function exportRides(){
-    const blob=new Blob([JSON.stringify(rides,null,2)],{type:"application/json"});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");a.href=url;a.download=`nyc-rides-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
+function StatsPage({ datasets, setDatasets, datasetsSource, onResetToRemote, onForceRefresh, refreshing, rides, setRides }) {
+  const [tab, setTab] = useState("progress");
+  const [query, setQuery] = useState("");
+  const riddenModels = useMemo(() => new Set(rides.map(r => r.model)), [rides]);
+  const riddenLines = useMemo(() => new Set(rides.map(r => r.line)), [rides]);
+  const modelPct = datasets.rollingStock.length ? (riddenModels.size / datasets.rollingStock.length) * 100 : 0;
+  const linePct = datasets.lines.length ? (riddenLines.size / datasets.lines.length) * 100 : 0;
+
+  function deleteRide(id) { setRides(prev => prev.filter(r => r.id !== id)); }
+  function clearRides() { if (confirm("Delete ALL rides?")) setRides([]); }
+  function exportRides() {
+    const blob = new Blob([JSON.stringify(rides, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = `nyc-rides-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
   }
-  function importRides(e){
-    const file=e.target.files?.[0];if(!file)return;
-    const reader=new FileReader();
-    reader.onload=()=>{
-      try{const p=JSON.parse(reader.result);if(!Array.isArray(p))throw new Error("Expected array");setRides(p);}
-      catch(err){alert("Invalid JSON: "+err.message);}
-    };reader.readAsText(file);
+  function importRides(e) {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try { const p = JSON.parse(reader.result); if (!Array.isArray(p)) throw new Error("Expected array"); setRides(p); }
+      catch (err) { alert("Invalid JSON: " + err.message); }
+    }; reader.readAsText(file);
   }
-  function save(){setDatasets(datasets);alert("Saved to your device!");}
-  function reset(){if(confirm("Reset to server defaults? Your local edits will be cleared.")){onResetToRemote();}}
-  function updateLine(idx,field,value){setDatasets(d=>({...d,lines:d.lines.map((l,i)=>i===idx?{...l,[field]:value}:l)}));}
-  function removeLine(idx){setDatasets(d=>({...d,lines:d.lines.filter((_,i)=>i!==idx)}));}
-  function addLine(){setDatasets(d=>({...d,lines:[...d.lines,{id:"X",label:"X",division:"B",color:"#444",textColor:"#fff",terminals:["",""]}]}));}
-  function updateStock(idx,field,value){setDatasets(d=>({...d,rollingStock:d.rollingStock.map((s,i)=>i===idx?{...s,[field]:value}:s)}));}
-  function updateRange(idx,rIdx,which,value){setDatasets(d=>({...d,rollingStock:d.rollingStock.map((s,i)=>{if(i!==idx)return s;return{...s,ranges:s.ranges.map((r,j)=>j===rIdx?[which===0?+value:r[0],which===1?+value:r[1]]:r)};})}))}
-  function addRange(idx){setDatasets(d=>({...d,rollingStock:d.rollingStock.map((s,i)=>i===idx?{...s,ranges:[...s.ranges,[0,0]]}:s)}));}
-  function removeStock(idx){setDatasets(d=>({...d,rollingStock:d.rollingStock.filter((_,i)=>i!==idx)}));}
-  function addStock(){setDatasets(d=>({...d,rollingStock:[...d.rollingStock,{model:"New Model",ranges:[[0,0]],division:"A"}]}));}
-  const filteredRides=rides.filter(r=>{const q=query.toLowerCase();return!q||[r.trainNumber,r.model,r.line].some(v=>v?.toLowerCase().includes(q));});
-  const innerTabs=[{key:"progress",label:"Progress"},{key:"history",label:"History"},{key:"settings",label:"Settings"}];
-  return(
+  function save() { setDatasets(datasets); alert("Saved to your device!"); }
+  function reset() { if (confirm("Reset to server defaults? Your local edits will be cleared.")) { onResetToRemote(); } }
+  function updateLine(idx, field, value) { setDatasets(d => ({...d,lines:d.lines.map((l,i)=>i===idx?{...l,[field]:value}:l)})); }
+  function removeLine(idx) { setDatasets(d => ({...d,lines:d.lines.filter((_,i)=>i!==idx)})); }
+  function addLine() { setDatasets(d => ({...d,lines:[...d.lines,{id:"X",label:"X",division:"B",color:"#444",textColor:"#fff",terminals:["",""]}]})); }
+  function updateStock(idx, field, value) { setDatasets(d => ({...d,rollingStock:d.rollingStock.map((s,i)=>i===idx?{...s,[field]:value}:s)})); }
+  function updateRange(idx, rIdx, which, value) {
+    setDatasets(d => ({...d,rollingStock:d.rollingStock.map((s,i)=>{
+      if (i !== idx) return s;
+      return {...s,ranges:s.ranges.map((r,j)=>j===rIdx?[which===0?+value:r[0],which===1?+value:r[1]]:r)};
+    })}));
+  }
+  function addRange(idx) { setDatasets(d => ({...d,rollingStock:d.rollingStock.map((s,i)=>i===idx?{...s,ranges:[...s.ranges,[0,0]]}:s)})); }
+  function removeStock(idx) { setDatasets(d => ({...d,rollingStock:d.rollingStock.filter((_,i)=>i!==idx)})); }
+  function addStock() { setDatasets(d => ({...d,rollingStock:[...d.rollingStock,{model:"New Model",ranges:[[0,0]],division:"A"}]})); }
+
+  const filteredRides = rides.filter(r => {
+    const q = query.toLowerCase();
+    return !q || [r.trainNumber, r.model, r.line].some(v => v?.toLowerCase().includes(q));
+  });
+  const innerTabs = [{key:"progress",label:"Progress"},{key:"history",label:"History"},{key:"settings",label:"Settings"}];
+
+  return (
     <div style={{maxWidth:900,margin:"0 auto",padding:"1.5rem 1rem 3rem"}}>
       <div style={{display:"flex",gap:"0.3rem",background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"0.3rem",marginBottom:"1.5rem",overflowX:"auto"}}>
-        {innerTabs.map(t=>(
-          <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:"0.55rem 1rem",border:"none",borderRadius:9,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:"1rem",letterSpacing:"0.04em",whiteSpace:"nowrap",background:tab===t.key?"#FCCC0A":"transparent",color:tab===t.key?"#000":"rgba(255,255,255,0.5)",cursor:"pointer",transition:"all 0.15s"}}>{t.label}</button>
+        {innerTabs.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            style={{flex:1,padding:"0.55rem 1rem",border:"none",borderRadius:9,fontFamily:"'Barlow Condensed',sans-serif",
+              fontWeight:700,fontSize:"1rem",letterSpacing:"0.04em",whiteSpace:"nowrap",
+              background:tab===t.key?"#FCCC0A":"transparent",color:tab===t.key?"#000":"rgba(255,255,255,0.5)",
+              cursor:"pointer",transition:"all 0.15s"}}>
+            {t.label}
+          </button>
         ))}
       </div>
-      {tab==="progress"&&(
+
+      {tab === "progress" && (
         <div style={{display:"flex",flexDirection:"column",gap:"1.5rem"}}>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:"0.75rem"}}>
-            {[{label:"Total Rides",value:rides.length,color:"#FCCC0A"},{label:"Models Ridden",value:`${riddenModels.size}/${datasets.rollingStock.length}`,color:"#4ade80"},{label:"Lines Ridden",value:`${riddenLines.size}/${datasets.lines.length}`,color:"#60a5fa"},{label:"Unique Cars",value:new Set(rides.map(r=>r.trainNumber)).size,color:"#f472b6"}].map(({label,value,color})=>(
+            {[{label:"Total Rides",value:rides.length,color:"#FCCC0A"},
+              {label:"Models Ridden",value:`${riddenModels.size}/${datasets.rollingStock.length}`,color:"#4ade80"},
+              {label:"Lines Ridden",value:`${riddenLines.size}/${datasets.lines.length}`,color:"#60a5fa"},
+              {label:"Unique Cars",value:new Set(rides.map(r=>r.trainNumber)).size,color:"#f472b6"}
+            ].map(({label,value,color}) => (
               <div key={label} style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"1rem 1.25rem"}}>
                 <div style={{fontSize:"0.72rem",color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{label}</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"2rem",color,marginTop:"0.2rem"}}>{value}</div>
@@ -462,12 +459,18 @@ function StatsPage({datasets,setDatasets,datasetsSource,onResetToRemote}){
             <div style={sectionHeadStyle}>Train Models <span style={badgeStyle}>{riddenModels.size}/{datasets.rollingStock.length}</span></div>
             <ProgressBar value={modelPct} color="#4ade80"/>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:"0.6rem",marginTop:"1rem"}}>
-              {datasets.rollingStock.map(s=>{
-                const ridden=riddenModels.has(s.model);
-                return(<motion.div key={s.model} whileHover={{scale:1.03}} style={{padding:"0.75rem 1rem",borderRadius:10,border:`1px solid ${ridden?"rgba(74,222,128,0.4)":"rgba(255,255,255,0.08)"}`,background:ridden?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.03)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <span style={{fontWeight:700,fontSize:"0.95rem"}}>{s.model}</span>
-                  <span style={{fontSize:"1.1rem"}}>{ridden?"✓":"·"}</span>
-                </motion.div>);
+              {datasets.rollingStock.map(s => {
+                const ridden = riddenModels.has(s.model);
+                return (
+                  <motion.div key={s.model} whileHover={{scale:1.03}}
+                    style={{padding:"0.75rem 1rem",borderRadius:10,
+                      border:`1px solid ${ridden?"rgba(74,222,128,0.4)":"rgba(255,255,255,0.08)"}`,
+                      background:ridden?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.03)",
+                      display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span style={{fontWeight:700,fontSize:"0.95rem"}}>{s.model}</span>
+                    <span style={{fontSize:"1.1rem"}}>{ridden ? "✓" : "·"}</span>
+                  </motion.div>
+                );
               })}
             </div>
           </div>
@@ -475,18 +478,23 @@ function StatsPage({datasets,setDatasets,datasetsSource,onResetToRemote}){
             <div style={sectionHeadStyle}>Subway Lines <span style={badgeStyle}>{riddenLines.size}/{datasets.lines.length}</span></div>
             <ProgressBar value={linePct} color="#60a5fa"/>
             <div style={{display:"flex",flexWrap:"wrap",gap:"0.6rem",marginTop:"1rem"}}>
-              {datasets.lines.map(l=>{
-                const ridden=riddenLines.has(l.id);
-                return(<div key={l.id} style={{display:"flex",alignItems:"center",gap:"0.5rem",padding:"0.4rem 0.8rem 0.4rem 0.4rem",borderRadius:999,border:`1.5px solid ${ridden?l.color:"rgba(255,255,255,0.1)"}`,background:ridden?`${l.color}22`:"rgba(255,255,255,0.03)",opacity:ridden?1:0.5}}>
-                  <LineBullet label={l.label} color={l.color} textColor={l.textColor} size={30}/>
-                  <span style={{fontSize:"0.82rem",fontWeight:600}}>{ridden?"✓":""}</span>
-                </div>);
+              {datasets.lines.map(l => {
+                const ridden = riddenLines.has(l.id);
+                return (
+                  <div key={l.id} style={{display:"flex",alignItems:"center",gap:"0.5rem",padding:"0.4rem 0.8rem 0.4rem 0.4rem",
+                    borderRadius:999,border:`1.5px solid ${ridden?l.color:"rgba(255,255,255,0.1)"}`,
+                    background:ridden?`${l.color}22`:"rgba(255,255,255,0.03)",opacity:ridden?1:0.5}}>
+                    <LineBullet label={l.label} color={l.color} textColor={l.textColor} size={30}/>
+                    <span style={{fontSize:"0.82rem",fontWeight:600}}>{ridden ? "✓" : ""}</span>
+                  </div>
+                );
               })}
             </div>
           </div>
         </div>
       )}
-      {tab==="history"&&(
+
+      {tab === "history" && (
         <div style={cardStyle}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1rem",flexWrap:"wrap",gap:"0.5rem"}}>
             <span style={sectionHeadStyle}>Ride History <span style={badgeStyle}>{rides.length}</span></span>
@@ -496,22 +504,26 @@ function StatsPage({datasets,setDatasets,datasetsSource,onResetToRemote}){
               <SmallBtn onClick={clearRides} danger>🗑 Clear All</SmallBtn>
             </div>
           </div>
-          <input placeholder="Filter by line, model, car #…" value={query} onChange={e=>setQuery(e.target.value)} style={{...inputStyle,marginBottom:"1rem"}}/>
+          <input placeholder="Filter by line, model, car #…" value={query} onChange={e => setQuery(e.target.value)} style={{...inputStyle,marginBottom:"1rem"}}/>
           <div style={{overflowX:"auto",borderRadius:10,border:"1px solid rgba(255,255,255,0.08)"}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.88rem"}}>
               <thead><tr style={{background:"rgba(0,0,0,0.4)"}}>
-                {["Time","Line","Car #","Model","Div",""].map(h=><th key={h} style={{padding:"0.6rem 0.8rem",textAlign:"left",color:"rgba(255,255,255,0.4)",fontWeight:700,fontSize:"0.72rem",letterSpacing:"0.08em",textTransform:"uppercase",borderBottom:"1px solid rgba(255,255,255,0.08)",whiteSpace:"nowrap"}}>{h}</th>)}
+                {["Time","Line","Car #","Model","Div",""].map(h=>(
+                  <th key={h} style={{padding:"0.6rem 0.8rem",textAlign:"left",color:"rgba(255,255,255,0.4)",fontWeight:700,
+                    fontSize:"0.72rem",letterSpacing:"0.08em",textTransform:"uppercase",
+                    borderBottom:"1px solid rgba(255,255,255,0.08)",whiteSpace:"nowrap"}}>{h}</th>
+                ))}
               </tr></thead>
               <tbody>
-                {filteredRides.length===0&&<tr><td colSpan={6} style={{padding:"2rem",textAlign:"center",color:"rgba(255,255,255,0.3)"}}>No rides match.</td></tr>}
-                {[...filteredRides].reverse().map((r,i)=>(
+                {filteredRides.length === 0 && <tr><td colSpan={6} style={{padding:"2rem",textAlign:"center",color:"rgba(255,255,255,0.3)"}}>No rides match.</td></tr>}
+                {[...filteredRides].reverse().map((r, i) => (
                   <tr key={r.id} style={{background:i%2===0?"transparent":"rgba(255,255,255,0.02)",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
                     <td style={{padding:"0.55rem 0.8rem",color:"rgba(255,255,255,0.45)",whiteSpace:"nowrap"}}>{new Date(r.timestamp).toLocaleString()}</td>
                     <td style={{padding:"0.55rem 0.8rem"}}><LineBullet label={r.lineLabel||r.line} color={r.lineColor||"#555"} textColor={r.lineTextColor||"#fff"} size={32}/></td>
                     <td style={{padding:"0.55rem 0.8rem",fontWeight:700,fontFamily:"'Barlow Condensed',sans-serif",fontSize:"1.05rem"}}>#{r.trainNumber}</td>
                     <td style={{padding:"0.55rem 0.8rem",fontWeight:600}}>{r.model}</td>
                     <td style={{padding:"0.55rem 0.8rem",color:"rgba(255,255,255,0.45)",fontSize:"0.8rem"}}>{r.division}</td>
-                    <td style={{padding:"0.55rem 0.8rem"}}><SmallBtn onClick={()=>deleteRide(r.id)} danger>✕</SmallBtn></td>
+                    <td style={{padding:"0.55rem 0.8rem"}}><SmallBtn onClick={() => deleteRide(r.id)} danger>✕</SmallBtn></td>
                   </tr>
                 ))}
               </tbody>
@@ -519,31 +531,66 @@ function StatsPage({datasets,setDatasets,datasetsSource,onResetToRemote}){
           </div>
         </div>
       )}
-      {tab==="settings"&&(
+
+      {tab === "settings" && (
         <div style={{display:"flex",flexDirection:"column",gap:"1.25rem"}}>
-          <div style={{display:"flex",alignItems:"center",gap:"0.6rem",padding:"0.65rem 1rem",borderRadius:10,background:datasetsSource==="user"?"rgba(252,204,10,0.08)":"rgba(74,222,128,0.08)",border:`1px solid ${datasetsSource==="user"?"rgba(252,204,10,0.25)":"rgba(74,222,128,0.25)"}`,fontSize:"0.82rem",color:"rgba(255,255,255,0.6)"}}>
+          {/* Dataset source status banner */}
+          <div style={{display:"flex",alignItems:"center",gap:"0.6rem",padding:"0.65rem 1rem",borderRadius:10,
+            background:datasetsSource==="user"?"rgba(252,204,10,0.08)":"rgba(74,222,128,0.08)",
+            border:`1px solid ${datasetsSource==="user"?"rgba(252,204,10,0.25)":"rgba(74,222,128,0.25)"}`,
+            fontSize:"0.82rem",color:"rgba(255,255,255,0.6)"}}>
             <span style={{fontSize:"1rem"}}>{datasetsSource==="user"?"✏️":"🌐"}</span>
-            <span>{datasetsSource==="user"?<><strong style={{color:"#FCCC0A"}}>Using your local edits.</strong> These override the server data.</>:<><strong style={{color:"#4ade80"}}>Live from server.</strong> Edit below and Save to customise locally.</>}</span>
+            <span>{datasetsSource==="user"
+              ? <><strong style={{color:"#FCCC0A"}}>Using your local edits.</strong> These override the server data.</>
+              : <><strong style={{color:"#4ade80"}}>Live from server.</strong> Edit below and Save to customise locally.</>
+            }</span>
           </div>
+
+          {/* NEW: Manual refresh section */}
+          <div style={cardStyle}>
+            <div style={sectionHeadStyle}>Fleet Data Cache</div>
+            <p style={{margin:"0 0 1rem",fontSize:"0.84rem",color:"rgba(255,255,255,0.45)",lineHeight:1.6}}>
+              Rolling stock ranges are cached locally so the app works offline underground.
+              Tap <strong style={{color:"#fff"}}>Refresh Data</strong> when you're connected to pull the latest ranges from the server.
+              {datasetsSource === "user" && <><br/><span style={{color:"#FCCC0A"}}>Note: you have local edits saved — refresh will update the remote cache but your edits still take priority until you Reset.</span></>}
+            </p>
+            <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap"}}>
+              <SmallBtn onClick={onForceRefresh} disabled={refreshing}
+                style={{opacity:refreshing?0.6:1,pointerEvents:refreshing?"none":"auto"}}>
+                {refreshing ? "⏳ Fetching…" : "↻ Refresh Data"}
+              </SmallBtn>
+              <SmallBtn onClick={reset} danger>↺ Reset to Defaults</SmallBtn>
+            </div>
+          </div>
+
           <div style={cardStyle}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1rem",flexWrap:"wrap",gap:"0.5rem"}}>
               <span style={sectionHeadStyle}>Rolling Stock Ranges</span>
-              <div style={{display:"flex",gap:"0.5rem"}}><SmallBtn onClick={addStock}>+ Model</SmallBtn><SmallBtn onClick={save} green>✓ Save</SmallBtn><SmallBtn onClick={reset} danger>↺ Reset</SmallBtn></div>
+              <div style={{display:"flex",gap:"0.5rem"}}>
+                <SmallBtn onClick={addStock}>+ Model</SmallBtn>
+                <SmallBtn onClick={save} green>✓ Save</SmallBtn>
+              </div>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:"0.65rem",maxHeight:"60vh",overflowY:"auto"}}>
-              {datasets.rollingStock.map((s,idx)=>(
+              {datasets.rollingStock.map((s, idx) => (
                 <div key={idx} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"0.85rem 1rem"}}>
                   <div style={{display:"flex",flexWrap:"wrap",gap:"0.5rem",alignItems:"center",marginBottom:"0.65rem"}}>
-                    <input value={s.model} onChange={e=>updateStock(idx,"model",e.target.value)} style={{...inputStyle,width:140}}/>
-                    <select value={s.division} onChange={e=>updateStock(idx,"division",e.target.value)} style={{...inputStyle,width:80}}><option>A</option><option>B</option><option>SIR</option></select>
-                    <div style={{marginLeft:"auto",display:"flex",gap:"0.4rem"}}><SmallBtn onClick={()=>addRange(idx)}>+ Range</SmallBtn><SmallBtn onClick={()=>removeStock(idx)} danger>Delete</SmallBtn></div>
+                    <input value={s.model} onChange={e => updateStock(idx,"model",e.target.value)} style={{...inputStyle,width:140}}/>
+                    <select value={s.division} onChange={e => updateStock(idx,"division",e.target.value)} style={{...inputStyle,width:80}}>
+                      <option>A</option><option>B</option><option>SIR</option>
+                    </select>
+                    <div style={{marginLeft:"auto",display:"flex",gap:"0.4rem"}}>
+                      <SmallBtn onClick={() => addRange(idx)}>+ Range</SmallBtn>
+                      <SmallBtn onClick={() => removeStock(idx)} danger>Delete</SmallBtn>
+                    </div>
                   </div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:"0.45rem"}}>
-                    {s.ranges.map((r,rIdx)=>(
-                      <div key={rIdx} style={{display:"flex",alignItems:"center",gap:"0.35rem",background:"rgba(0,0,0,0.3)",padding:"0.3rem 0.6rem",borderRadius:7,border:"1px solid rgba(255,255,255,0.07)"}}>
-                        <input value={r[0]} onChange={e=>updateRange(idx,rIdx,0,e.target.value)} style={{...inputStyle,width:72,textAlign:"center",padding:"0.3rem 0.4rem"}}/>
+                    {s.ranges.map((r, rIdx) => (
+                      <div key={rIdx} style={{display:"flex",alignItems:"center",gap:"0.35rem",background:"rgba(0,0,0,0.3)",
+                        padding:"0.3rem 0.6rem",borderRadius:7,border:"1px solid rgba(255,255,255,0.07)"}}>
+                        <input value={r[0]} onChange={e => updateRange(idx,rIdx,0,e.target.value)} style={{...inputStyle,width:72,textAlign:"center",padding:"0.3rem 0.4rem"}}/>
                         <span style={{color:"rgba(255,255,255,0.3)"}}>–</span>
-                        <input value={r[1]} onChange={e=>updateRange(idx,rIdx,1,e.target.value)} style={{...inputStyle,width:72,textAlign:"center",padding:"0.3rem 0.4rem"}}/>
+                        <input value={r[1]} onChange={e => updateRange(idx,rIdx,1,e.target.value)} style={{...inputStyle,width:72,textAlign:"center",padding:"0.3rem 0.4rem"}}/>
                       </div>
                     ))}
                   </div>
@@ -551,18 +598,25 @@ function StatsPage({datasets,setDatasets,datasetsSource,onResetToRemote}){
               ))}
             </div>
           </div>
+
           <div style={cardStyle}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1rem",flexWrap:"wrap",gap:"0.5rem"}}>
               <span style={sectionHeadStyle}>Subway Lines</span>
-              <div style={{display:"flex",gap:"0.5rem"}}><SmallBtn onClick={addLine}>+ Line</SmallBtn><SmallBtn onClick={save} green>✓ Save</SmallBtn></div>
+              <div style={{display:"flex",gap:"0.5rem"}}>
+                <SmallBtn onClick={addLine}>+ Line</SmallBtn>
+                <SmallBtn onClick={save} green>✓ Save</SmallBtn>
+              </div>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:"0.6rem",maxHeight:"60vh",overflowY:"auto"}}>
-              {datasets.lines.map((l,idx)=>(
-                <div key={idx} style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:"0.5rem",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"0.7rem 0.85rem"}}>
+              {datasets.lines.map((l, idx) => (
+                <div key={idx} style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:"0.5rem",
+                  background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"0.7rem 0.85rem"}}>
                   <LineBullet label={l.label} color={l.color} textColor={l.textColor||"#fff"} size={38}/>
                   <input value={l.id} onChange={e=>updateLine(idx,"id",e.target.value)} style={{...inputStyle,width:52}} placeholder="ID"/>
                   <input value={l.label} onChange={e=>updateLine(idx,"label",e.target.value)} style={{...inputStyle,width:60}} placeholder="Label"/>
-                  <select value={l.division} onChange={e=>updateLine(idx,"division",e.target.value)} style={{...inputStyle,width:76}}><option>A</option><option>B</option><option>SIR</option></select>
+                  <select value={l.division} onChange={e=>updateLine(idx,"division",e.target.value)} style={{...inputStyle,width:76}}>
+                    <option>A</option><option>B</option><option>SIR</option>
+                  </select>
                   <input type="color" value={l.color} onChange={e=>updateLine(idx,"color",e.target.value)} style={{width:38,height:34,borderRadius:6,border:"none",cursor:"pointer",background:"none"}}/>
                   <input value={l.color} onChange={e=>updateLine(idx,"color",e.target.value)} style={{...inputStyle,width:86}}/>
                   <input value={l.terminals?.[0]||""} onChange={e=>updateLine(idx,"terminals",[e.target.value,l.terminals?.[1]||""])} style={{...inputStyle,flex:1,minWidth:120}} placeholder="Terminal A"/>
@@ -581,37 +635,113 @@ function StatsPage({datasets,setDatasets,datasetsSource,onResetToRemote}){
 /* ─────────────────────────────────────────────────────────────────
    MICRO UI (NYC)
 ───────────────────────────────────────────────────────────────── */
-const inputStyle={background:"rgba(255,255,255,0.07)",color:"#fff",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,fontFamily:"inherit",fontSize:"0.92rem",padding:"0.5rem 0.75rem",outline:"none",width:"100%"};
-const labelStyle={display:"block",fontSize:"0.72rem",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.4)",marginBottom:"0.5rem"};
-const cardStyle={background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:"1.25rem 1.5rem"};
-const sectionHeadStyle={fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:"1.15rem",letterSpacing:"0.04em",display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"0.75rem"};
-const badgeStyle={background:"rgba(255,255,255,0.1)",borderRadius:999,padding:"0.1rem 0.55rem",fontSize:"0.8rem",fontWeight:700,fontFamily:"'Barlow Condensed',sans-serif"};
-const smallBtnStyle={padding:"0.4rem 0.8rem",borderRadius:7,border:"1px solid rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.07)",color:"#fff",fontWeight:700,fontSize:"0.8rem",fontFamily:"'Barlow Condensed',sans-serif",cursor:"pointer",letterSpacing:"0.03em",display:"inline-flex",alignItems:"center",gap:"0.25rem",whiteSpace:"nowrap"};
-function SmallBtn({children,onClick,danger,green,...rest}){
-  return(<button onClick={onClick} {...rest} style={{...smallBtnStyle,...(danger?{background:"rgba(238,53,46,0.2)",borderColor:"rgba(238,53,46,0.4)",color:"#ff8882"}:{}),...(green?{background:"rgba(0,147,60,0.2)",borderColor:"rgba(0,147,60,0.4)",color:"#4ade80"}:{}),...(rest.style||{})}}>{children}</button>);
+const inputStyle = {background:"rgba(255,255,255,0.07)",color:"#fff",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,fontFamily:"inherit",fontSize:"0.92rem",padding:"0.5rem 0.75rem",outline:"none",width:"100%"};
+const labelStyle = {display:"block",fontSize:"0.72rem",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.4)",marginBottom:"0.5rem"};
+const cardStyle = {background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:"1.25rem 1.5rem"};
+const sectionHeadStyle = {fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:"1.15rem",letterSpacing:"0.04em",display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"0.75rem"};
+const badgeStyle = {background:"rgba(255,255,255,0.1)",borderRadius:999,padding:"0.1rem 0.55rem",fontSize:"0.8rem",fontWeight:700,fontFamily:"'Barlow Condensed',sans-serif"};
+const smallBtnStyle = {padding:"0.4rem 0.8rem",borderRadius:7,border:"1px solid rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.07)",color:"#fff",fontWeight:700,fontSize:"0.8rem",fontFamily:"'Barlow Condensed',sans-serif",cursor:"pointer",letterSpacing:"0.03em",display:"inline-flex",alignItems:"center",gap:"0.25rem",whiteSpace:"nowrap"};
+function SmallBtn({ children, onClick, danger, green, disabled, style: extraStyle, ...rest }) {
+  return (
+    <button onClick={onClick} disabled={disabled} {...rest}
+      style={{...smallBtnStyle,...(danger?{background:"rgba(238,53,46,0.2)",borderColor:"rgba(238,53,46,0.4)",color:"#ff8882"}:{}), ...(green?{background:"rgba(0,147,60,0.2)",borderColor:"rgba(0,147,60,0.4)",color:"#4ade80"}:{}), ...(disabled?{opacity:0.5,cursor:"not-allowed"}:{}), ...(extraStyle||{})}}>
+      {children}
+    </button>
+  );
 }
 
 /* ─────────────────────────────────────────────────────────────────
    NYC APP SHELL
+   FIX: rides/setRides lifted here — single source of truth
+   FIX: dataset loading uses localStorage remote cache for offline use
 ───────────────────────────────────────────────────────────────── */
 function NYCApp({ onSwitchSystem }) {
-  const [page,setPage]=useState("live");
-  const [datasets,setDatasets]=useState(null);
-  const [datasetsSource,setDatasetsSource]=useState("remote");
-  const [rides,setRides]=useCookieRides();
+  const [page, setPage] = useState("live");
+  const [datasets, setDatasets] = useState(null);
+  const [datasetsSource, setDatasetsSource] = useState("remote");
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(()=>{
-    const userDs=getUserDatasets();
-    if(userDs){setDatasets(userDs);setDatasetsSource("user");}
-    else{fetchRemoteDatasets().then(ds=>{setDatasets(ds);setDatasetsSource("remote");}).catch(()=>{setDatasets(FALLBACK_DATASETS);setDatasetsSource("remote");});}
-  },[]);
+  // FIX: single useCookieRides() call — passed as props to both LiveRider and StatsPage
+  const [rides, setRides] = useCookieRides();
 
-  function onAddRide(ride){setRides(prev=>[...prev,ride]);}
-  function handleSetDatasets(ds){setDatasets(ds);saveDatasets(ds);setDatasetsSource("user");}
-  function handleResetToRemote(){clearUserDatasets();setDatasetsSource("remote");fetchRemoteDatasets().then(ds=>setDatasets(ds)).catch(()=>setDatasets(FALLBACK_DATASETS));}
+  useEffect(() => {
+    const userDs = getUserDatasets();
+    if (userDs) {
+      // User has saved edits — show them immediately
+      setDatasets(userDs);
+      setDatasetsSource("user");
+      // Still refresh the remote cache in the background if stale, but don't overwrite display
+      const cache = getRemoteCache();
+      const stale = !cache || (Date.now() - cache.timestamp > REMOTE_CACHE_TTL_MS);
+      if (stale && navigator.onLine) {
+        fetchRemoteDatasets().then(ds => saveRemoteCache(ds)).catch(() => {});
+      }
+    } else {
+      // No user edits — check remote cache first (works offline)
+      const cache = getRemoteCache();
+      if (cache) {
+        setDatasets(cache.data);
+        setDatasetsSource("remote");
+        // Background refresh if stale and online
+        const stale = Date.now() - cache.timestamp > REMOTE_CACHE_TTL_MS;
+        if (stale && navigator.onLine) {
+          fetchRemoteDatasets().then(ds => {
+            saveRemoteCache(ds);
+            setDatasets(ds); // silently update
+          }).catch(() => {});
+        }
+      } else {
+        // No cache at all — try to fetch, fall back to hardcoded
+        fetchRemoteDatasets()
+          .then(ds => { saveRemoteCache(ds); setDatasets(ds); setDatasetsSource("remote"); })
+          .catch(() => { setDatasets(FALLBACK_DATASETS); setDatasetsSource("remote"); });
+      }
+    }
+  }, []);
 
-  if(!datasets){
-    return(
+  function handleSetDatasets(ds) {
+    setDatasets(ds);
+    saveUserDatasets(ds);
+    setDatasetsSource("user");
+  }
+
+  function handleResetToRemote() {
+    clearUserDatasets();
+    setDatasetsSource("remote");
+    const cache = getRemoteCache();
+    if (cache) {
+      setDatasets(cache.data);
+    } else {
+      fetchRemoteDatasets()
+        .then(ds => { saveRemoteCache(ds); setDatasets(ds); })
+        .catch(() => setDatasets(FALLBACK_DATASETS));
+    }
+  }
+
+  // NEW: manual force-refresh button handler
+  async function handleForceRefresh() {
+    if (!navigator.onLine) {
+      alert("You're offline. Connect to the internet to refresh fleet data.");
+      return;
+    }
+    setRefreshing(true);
+    try {
+      const ds = await fetchRemoteDatasets();
+      saveRemoteCache(ds);
+      // Only update display if user hasn't saved local edits
+      if (datasetsSource !== "user") {
+        setDatasets(ds);
+      }
+      alert("Fleet data updated and cached for offline use!");
+    } catch (err) {
+      alert("Refresh failed: " + err.message);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  if (!datasets) {
+    return (
       <div style={{minHeight:"100vh",background:"#111116",color:"#f0f0f4",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow',system-ui,sans-serif"}}>
         <div style={{textAlign:"center",opacity:0.5}}>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"1.5rem",letterSpacing:"0.04em"}}>Loading fleet data…</div>
@@ -620,7 +750,7 @@ function NYCApp({ onSwitchSystem }) {
     );
   }
 
-  return(
+  return (
     <div style={{minHeight:"100vh",background:"#111116",color:"#f0f0f4",fontFamily:"'Barlow',system-ui,sans-serif"}}>
       <header style={{position:"sticky",top:0,zIndex:50,background:"rgba(17,17,22,0.9)",backdropFilter:"blur(14px)",borderBottom:"1px solid rgba(255,255,255,0.07)",padding:"0 1rem"}}>
         <div style={{maxWidth:900,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0.75rem 0",gap:"1rem",flexWrap:"wrap"}}>
@@ -632,19 +762,19 @@ function NYCApp({ onSwitchSystem }) {
             </div>
           </div>
           <nav style={{display:"flex",gap:"0.25rem",background:"rgba(255,255,255,0.06)",borderRadius:10,padding:"0.25rem",border:"1px solid rgba(255,255,255,0.07)"}}>
-            {[{key:"live",label:"🚇 Live Rider"},{key:"stats",label:"📊 Stats"}].map(t=>(
-              <button key={t.key} onClick={()=>setPage(t.key)} style={{padding:"0.45rem 1rem",borderRadius:7,border:"none",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:"0.95rem",letterSpacing:"0.03em",background:page===t.key?"#FCCC0A":"transparent",color:page===t.key?"#000":"rgba(255,255,255,0.45)",cursor:"pointer",transition:"all 0.15s"}}>{t.label}</button>
+            {[{key:"live",label:"🚇 Live Rider"},{key:"stats",label:"📊 Stats"}].map(t => (
+              <button key={t.key} onClick={() => setPage(t.key)}
+                style={{padding:"0.45rem 1rem",borderRadius:7,border:"none",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:"0.95rem",letterSpacing:"0.03em",background:page===t.key?"#FCCC0A":"transparent",color:page===t.key?"#000":"rgba(255,255,255,0.45)",cursor:"pointer",transition:"all 0.15s"}}>
+                {t.label}
+              </button>
             ))}
           </nav>
           <div style={{display:"flex",alignItems:"center",gap:"1rem"}}>
             <div style={{fontSize:"0.82rem",color:"rgba(255,255,255,0.35)",display:"flex",alignItems:"center",gap:"0.3rem"}}>
               <span style={{color:"#FCCC0A",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"1.15rem"}}>{rides.length}</span> rides
             </div>
-            {/* Switch system button */}
-            <button
-              onClick={onSwitchSystem}
-              style={{padding:"0.35rem 0.75rem",border:"1px solid rgba(255,255,255,0.12)",borderRadius:6,background:"transparent",color:"rgba(255,255,255,0.35)",fontFamily:"'Barlow Condensed',sans-serif",fontSize:"0.72rem",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}
-            >
+            <button onClick={onSwitchSystem}
+              style={{padding:"0.35rem 0.75rem",border:"1px solid rgba(255,255,255,0.12)",borderRadius:6,background:"transparent",color:"rgba(255,255,255,0.35)",fontFamily:"'Barlow Condensed',sans-serif",fontSize:"0.72rem",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}>
               Switch →
             </button>
           </div>
@@ -652,7 +782,11 @@ function NYCApp({ onSwitchSystem }) {
       </header>
       <AnimatePresence mode="wait">
         <motion.div key={page} initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0}} transition={{duration:0.2}}>
-          {page==="live"?<LiveRider datasets={datasets} onAddRide={onAddRide}/>:<StatsPage datasets={datasets} setDatasets={handleSetDatasets} datasetsSource={datasetsSource} onResetToRemote={handleResetToRemote}/>}
+          {page === "live"
+            ? <LiveRider datasets={datasets} rides={rides} setRides={setRides}/>
+            : <StatsPage datasets={datasets} setDatasets={handleSetDatasets} datasetsSource={datasetsSource}
+                onResetToRemote={handleResetToRemote} onForceRefresh={handleForceRefresh} refreshing={refreshing}
+                rides={rides} setRides={setRides}/>}
         </motion.div>
       </AnimatePresence>
       <footer style={{borderTop:"1px solid rgba(255,255,255,0.06)",padding:"1rem",textAlign:"center",fontSize:"0.72rem",color:"rgba(255,255,255,0.2)",letterSpacing:"0.06em"}}>
@@ -663,8 +797,7 @@ function NYCApp({ onSwitchSystem }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   DC METRO INLINE (to avoid separate file imports in this context)
-   Full DC app is in DCMetro.jsx — imported here
+   DC METRO
 ───────────────────────────────────────────────────────────────── */
 const DC_LINES_DATA = [
   {id:"red",label:"Red",color:"#BF0D3E",textColor:"#fff",endpoints:["Shady Grove","Glenmont"],stations:["Shady Grove","Rockville","Twinbrook","White Flint","Grosvenor–Strathmore","Medical Center","Bethesda","Friendship Heights","Tenleytown–AU","Van Ness–UDC","Cleveland Park","Woodley Park–Zoo/Adams Morgan","Dupont Circle","Farragut North","Metro Center","Gallery Pl–Chinatown","Judiciary Square","Union Station","NoMa–Gallaudet U","Rhode Island Ave–Brentwood","Brookland–CUA","Fort Totten","Takoma","Silver Spring","Forest Glen","Wheaton","Glenmont"]},
@@ -676,18 +809,14 @@ const DC_LINES_DATA = [
 ];
 
 const DC_VISITED_KEY = "wmata_visited_v1";
-function loadDCVisited(){try{const r=localStorage.getItem(DC_VISITED_KEY);return r?new Set(JSON.parse(r)):new Set();}catch{return new Set();}}
-function saveDCVisited(set){try{localStorage.setItem(DC_VISITED_KEY,JSON.stringify([...set]));}catch{}}
-function useDCVisited(){
-  const [visited,setV]=useState(loadDCVisited);
-  const setVisited=useCallback2((fn)=>{
-    setV(prev=>{const next=typeof fn==="function"?fn(prev):fn;saveDCVisited(next);return next;});
-  },[]);
-  return [visited,setVisited];
-}
-// Simple useCallback wrapper to avoid import issues
-function useCallback2(fn, deps) {
-  return React.useCallback(fn, deps);
+function loadDCVisited() { try { const r = localStorage.getItem(DC_VISITED_KEY); return r ? new Set(JSON.parse(r)) : new Set(); } catch { return new Set(); } }
+function saveDCVisited(set) { try { localStorage.setItem(DC_VISITED_KEY, JSON.stringify([...set])); } catch {} }
+function useDCVisited() {
+  const [visited, setV] = useState(loadDCVisited);
+  const setVisited = React.useCallback((fn) => {
+    setV(prev => { const next = typeof fn === "function" ? fn(prev) : fn; saveDCVisited(next); return next; });
+  }, []);
+  return [visited, setVisited];
 }
 
 const DC_CSS_GLOBAL = `
@@ -706,20 +835,20 @@ const DC_CSS_GLOBAL = `
   .hide-scrollbar::-webkit-scrollbar{display:none;}.hide-scrollbar{-ms-overflow-style:none;scrollbar-width:none;}
 `;
 
-function DCStyles2(){
-  useEffect(()=>{
-    const el=document.createElement("style");el.id="dc-metro-styles";el.textContent=DC_CSS_GLOBAL;
+function DCStyles2() {
+  useEffect(() => {
+    const el = document.createElement("style"); el.id = "dc-metro-styles"; el.textContent = DC_CSS_GLOBAL;
     document.head.appendChild(el);
-    return()=>{const s=document.getElementById("dc-metro-styles");if(s)s.remove();};
-  },[]);
+    return () => { const s = document.getElementById("dc-metro-styles"); if (s) s.remove(); };
+  }, []);
   return null;
 }
 
-function ArcProgress2({value,total,color,size=110}){
-  const pct=total>0?value/total:0;
-  const r=(size-10)/2;const cx=size/2;const cy=size/2;
-  const circum=2*Math.PI*r;const dash=pct*circum;const gap=circum-dash;
-  return(
+function ArcProgress2({ value, total, color, size=110 }) {
+  const pct = total > 0 ? value / total : 0;
+  const r = (size - 10) / 2; const cx = size / 2; const cy = size / 2;
+  const circum = 2 * Math.PI * r; const dash = pct * circum; const gap = circum - dash;
+  return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{transform:"rotate(-90deg)"}}>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={5}/>
       <motion.circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={5} strokeLinecap="round"
@@ -729,106 +858,89 @@ function ArcProgress2({value,total,color,size=110}){
   );
 }
 
-function DCLinePill({line,size="md",selected,onClick}){
-  // Replaced fixed width (w) with minWidth (minW) and added padding (px)
-  const sz = size === "sm" ? { minW: 28, h: 17, fs: 9, px: 4 } : { minW: 36, h: 22, fs: 10, px: 8 };
-  
-  return(
-    <button onClick={onClick} style={{
-      minWidth: sz.minW,
-      padding: `0 ${sz.px}px`, // Added padding so the text has breathing room
-      height: sz.h,
-      borderRadius: 3,
-      background: line.color,
-      color: line.textColor,
-      fontFamily: "'IBM Plex Mono',monospace",
-      fontWeight: 500,
-      fontSize: sz.fs,
-      letterSpacing: "0.08em",
-      border: selected ? `2px solid ${line.color}` : "2px solid transparent",
-      outline: selected ? "2px solid rgba(255,255,255,0.6)" : "none",
-      outlineOffset: 2,
-      cursor: onClick ? "pointer" : "default",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      flexShrink: 0,
-      transition: "outline 0.12s",
-      textTransform: "uppercase"
-    }}>
+function DCLinePill({ line, size="md", selected, onClick }) {
+  const sz = size === "sm" ? { minW:28, h:17, fs:9, px:4 } : { minW:36, h:22, fs:10, px:8 };
+  return (
+    <button onClick={onClick} style={{minWidth:sz.minW,padding:`0 ${sz.px}px`,height:sz.h,borderRadius:3,background:line.color,
+      color:line.textColor,fontFamily:"'IBM Plex Mono',monospace",fontWeight:500,fontSize:sz.fs,letterSpacing:"0.08em",
+      border:selected?`2px solid ${line.color}`:"2px solid transparent",
+      outline:selected?"2px solid rgba(255,255,255,0.6)":"none",outlineOffset:2,
+      cursor:onClick?"pointer":"default",display:"inline-flex",alignItems:"center",justifyContent:"center",
+      flexShrink:0,transition:"outline 0.12s",textTransform:"uppercase"}}>
       {line.label}
     </button>
   );
 }
 
-function DCStationRow({station,lineColor,isVisited,onToggle,index,isLast}){
-  return(
-    <motion.div layout className={`dc-station-row${isVisited?" visited":""}`} onClick={onToggle}
+function DCStationRow({ station, lineColor, isVisited, onToggle, index, isLast }) {
+  return (
+    <motion.div layout className={`dc-station-row${isVisited ? " visited" : ""}`} onClick={onToggle}
       initial={{opacity:0,x:-8}} animate={{opacity:1,x:0}}
       transition={{delay:Math.min(index*0.018,0.4),duration:0.22}}>
       <div style={{width:32,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",position:"relative"}}>
-        {index>0&&<div style={{position:"absolute",top:0,bottom:"50%",left:"50%",transform:"translateX(-50%)",width:3,background:lineColor,opacity:0.4}}/>}
-        {!isLast&&<div style={{position:"absolute",top:"50%",bottom:0,left:"50%",transform:"translateX(-50%)",width:3,background:lineColor,opacity:0.4}}/>}
-        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:isVisited?12:10,height:isVisited?12:10,borderRadius:"50%",background:isVisited?lineColor:"transparent",border:`2px solid ${isVisited?lineColor:"rgba(255,255,255,0.25)"}`,transition:"all 0.2s ease",flexShrink:0,zIndex:1}}/>
+        {index > 0 && <div style={{position:"absolute",top:0,bottom:"50%",left:"50%",transform:"translateX(-50%)",width:3,background:lineColor,opacity:0.4}}/>}
+        {!isLast && <div style={{position:"absolute",top:"50%",bottom:0,left:"50%",transform:"translateX(-50%)",width:3,background:lineColor,opacity:0.4}}/>}
+        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
+          width:isVisited?12:10,height:isVisited?12:10,borderRadius:"50%",
+          background:isVisited?lineColor:"transparent",border:`2px solid ${isVisited?lineColor:"rgba(255,255,255,0.25)"}`,
+          transition:"all 0.2s ease",flexShrink:0,zIndex:1}}/>
       </div>
       <div style={{flex:1,padding:"0.85rem 0.75rem 0.85rem 0.25rem",display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:52}}>
-        <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontWeight:isVisited?500:300,fontSize:"0.9rem",color:isVisited?"#e8e6e0":"rgba(232,230,224,0.55)",letterSpacing:"0.01em",transition:"color 0.2s,font-weight 0.2s"}}>{station}</div>
+        <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontWeight:isVisited?500:300,fontSize:"0.9rem",
+          color:isVisited?"#e8e6e0":"rgba(232,230,224,0.55)",letterSpacing:"0.01em",
+          transition:"color 0.2s,font-weight 0.2s"}}>{station}</div>
         <div style={{marginLeft:"0.5rem",flexShrink:0}}>
-          {isVisited?(
-            <motion.div initial={{scale:0}} animate={{scale:1}} style={{width:20,height:20,borderRadius:"50%",background:lineColor,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.8 7L9 1" stroke="rgba(0,0,0,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </motion.div>
-          ):(
-            <div style={{width:20,height:20,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.12)"}}/>
-          )}
+          {isVisited
+            ? <motion.div initial={{scale:0}} animate={{scale:1}} style={{width:20,height:20,borderRadius:"50%",background:lineColor,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.8 7L9 1" stroke="rgba(0,0,0,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </motion.div>
+            : <div style={{width:20,height:20,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.12)"}}/>}
         </div>
       </div>
     </motion.div>
   );
 }
 
-function DCLogPage2({visited,onToggle}){
-  const [selectedLine,setSelectedLine]=useState(DC_LINES_DATA[0]);
-  const [filter,setFilter]=useState("all");
-
-  const lineStats=useMemo(()=>DC_LINES_DATA.map(l=>{
-    const count=l.stations.filter(s=>visited.has(`${l.id}::${s}`)).length;
-    return{...l,visited:count,total:l.stations.length,pct:l.stations.length?count/l.stations.length:0};
-  }),[visited]);
-
-  const activeStats=lineStats.find(l=>l.id===selectedLine.id);
-  const displayedStations=useMemo(()=>{
-    if(!selectedLine)return[];
-    return selectedLine.stations.filter(s=>{
-      const key=`${selectedLine.id}::${s}`;
-      if(filter==="visited")return visited.has(key);
-      if(filter==="unvisited")return!visited.has(key);
+function DCLogPage2({ visited, onToggle }) {
+  const [selectedLine, setSelectedLine] = useState(DC_LINES_DATA[0]);
+  const [filter, setFilter] = useState("all");
+  const lineStats = useMemo(() => DC_LINES_DATA.map(l => {
+    const count = l.stations.filter(s => visited.has(`${l.id}::${s}`)).length;
+    return {...l, visited:count, total:l.stations.length, pct:l.stations.length?count/l.stations.length:0};
+  }), [visited]);
+  const activeStats = lineStats.find(l => l.id === selectedLine.id);
+  const displayedStations = useMemo(() => {
+    if (!selectedLine) return [];
+    return selectedLine.stations.filter(s => {
+      const key = `${selectedLine.id}::${s}`;
+      if (filter === "visited") return visited.has(key);
+      if (filter === "unvisited") return !visited.has(key);
       return true;
     });
-  },[selectedLine,visited,filter]);
+  }, [selectedLine, visited, filter]);
 
-  function markAll(){
-    const keys=selectedLine.stations.map(s=>`${selectedLine.id}::${s}`);
-    const allV=keys.every(k=>visited.has(k));
-    if(allV){onToggle(prev=>{const next=new Set(prev);keys.forEach(k=>next.delete(k));return next;});}
-    else{onToggle(prev=>{const next=new Set(prev);keys.forEach(k=>next.add(k));return next;});}
+  function markAll() {
+    const keys = selectedLine.stations.map(s => `${selectedLine.id}::${s}`);
+    const allV = keys.every(k => visited.has(k));
+    if (allV) { onToggle(prev => { const next = new Set(prev); keys.forEach(k => next.delete(k)); return next; }); }
+    else { onToggle(prev => { const next = new Set(prev); keys.forEach(k => next.add(k)); return next; }); }
   }
-  const allMarked=selectedLine.stations.every(s=>visited.has(`${selectedLine.id}::${s}`));
+  const allMarked = selectedLine.stations.every(s => visited.has(`${selectedLine.id}::${s}`));
 
-  return(
+  return (
     <div style={{position:"relative",zIndex:1,maxWidth:840,margin:"0 auto",padding:"1.5rem 1rem 3rem"}}>
       <div style={{marginBottom:"1.5rem",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:4,overflow:"hidden"}}>
         <div style={{padding:"0.75rem 1rem",borderBottom:"1px solid rgba(255,255,255,0.07)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <span style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.68rem",letterSpacing:"0.14em",textTransform:"uppercase",color:"rgba(232,230,224,0.35)"}}>Select Line</span>
         </div>
         <div style={{display:"flex",overflowX:"auto",borderBottom:"1px solid rgba(255,255,255,0.07)"}} className="hide-scrollbar">
-          {DC_LINES_DATA.map(line=>{
-            const stat=lineStats.find(l=>l.id===line.id);
-            const isActive=selectedLine.id===line.id;
-            return(
+          {DC_LINES_DATA.map(line => {
+            const stat = lineStats.find(l => l.id === line.id);
+            const isActive = selectedLine.id === line.id;
+            return (
               <button key={line.id} className={`dc-line-tab${isActive?" active":""}`}
                 style={{color:isActive?line.color:undefined,borderBottomColor:isActive?line.color:undefined}}
-                onClick={()=>{setSelectedLine(line);setFilter("all");}}>
+                onClick={() => { setSelectedLine(line); setFilter("all"); }}>
                 {line.label}
                 <span style={{marginLeft:"0.4rem",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.62rem",opacity:0.6}}>{stat?.visited}/{stat?.total}</span>
               </button>
@@ -838,7 +950,8 @@ function DCLogPage2({visited,onToggle}){
         <div style={{padding:"0.65rem 1rem",display:"flex",alignItems:"center",gap:"0.75rem",flexWrap:"wrap",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
           <DCLinePill line={selectedLine}/>
           <div style={{flex:1}}>
-            <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.78rem",color:"rgba(232,230,224,0.4)",letterSpacing:"0.02em"}}>{selectedLine.endpoints[0]} ↔ {selectedLine.endpoints[1]}</div>
+            <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.78rem",color:"rgba(232,230,224,0.4)",letterSpacing:"0.02em"}}>
+              {selectedLine.endpoints[0]} ↔ {selectedLine.endpoints[1]}</div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"0.5rem"}}>
             <div style={{width:100,height:3,background:"rgba(255,255,255,0.08)",borderRadius:2,overflow:"hidden"}}>
@@ -848,50 +961,60 @@ function DCLogPage2({visited,onToggle}){
           </div>
         </div>
         <div style={{padding:"0.5rem 0.75rem",display:"flex",alignItems:"center",gap:"0.5rem",flexWrap:"wrap"}}>
-          {["all","visited","unvisited"].map(f=>(
-            <button key={f} onClick={()=>setFilter(f)} style={{padding:"0.28rem 0.65rem",border:`1px solid ${filter===f?"rgba(255,255,255,0.3)":"rgba(255,255,255,0.08)"}`,borderRadius:3,background:filter===f?"rgba(255,255,255,0.08)":"transparent",color:filter===f?"#e8e6e0":"rgba(232,230,224,0.35)",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.65rem",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}>{f}</button>
+          {["all","visited","unvisited"].map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              style={{padding:"0.28rem 0.65rem",border:`1px solid ${filter===f?"rgba(255,255,255,0.3)":"rgba(255,255,255,0.08)"}`,borderRadius:3,
+                background:filter===f?"rgba(255,255,255,0.08)":"transparent",color:filter===f?"#e8e6e0":"rgba(232,230,224,0.35)",
+                fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.65rem",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}>
+              {f}
+            </button>
           ))}
-          <button onClick={markAll} style={{marginLeft:"auto",padding:"0.28rem 0.65rem",border:"1px solid rgba(255,255,255,0.08)",borderRadius:3,background:"transparent",color:selectedLine.color,fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.65rem",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s",opacity:0.8}}>
-            {allMarked?"Unmark All":"Mark All"}
+          <button onClick={markAll}
+            style={{marginLeft:"auto",padding:"0.28rem 0.65rem",border:"1px solid rgba(255,255,255,0.08)",borderRadius:3,
+              background:"transparent",color:selectedLine.color,fontFamily:"'IBM Plex Mono',monospace",
+              fontSize:"0.65rem",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s",opacity:0.8}}>
+            {allMarked ? "Unmark All" : "Mark All"}
           </button>
         </div>
       </div>
       <div style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:4,overflow:"hidden"}}>
-        {displayedStations.length===0?(
-          <div style={{padding:"3rem 1.5rem",textAlign:"center",color:"rgba(232,230,224,0.25)",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.75rem",letterSpacing:"0.1em"}}>No stations match this filter</div>
-        ):(
-          <AnimatePresence mode="wait">
-            <motion.div key={selectedLine.id+filter}>
-              {displayedStations.map((station,i)=>{
-                const key=`${selectedLine.id}::${station}`;
-                return(<DCStationRow key={key} station={station} lineColor={selectedLine.color} isVisited={visited.has(key)}
-                  onToggle={()=>onToggle(prev=>{const next=new Set(prev);next.has(key)?next.delete(key):next.add(key);return next;})}
-                  index={i} isLast={i===displayedStations.length-1}/>);
-              })}
-            </motion.div>
-          </AnimatePresence>
-        )}
+        {displayedStations.length === 0
+          ? <div style={{padding:"3rem 1.5rem",textAlign:"center",color:"rgba(232,230,224,0.25)",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.75rem",letterSpacing:"0.1em"}}>No stations match this filter</div>
+          : <AnimatePresence mode="wait">
+              <motion.div key={selectedLine.id+filter}>
+                {displayedStations.map((station, i) => {
+                  const key = `${selectedLine.id}::${station}`;
+                  return (<DCStationRow key={key} station={station} lineColor={selectedLine.color} isVisited={visited.has(key)}
+                    onToggle={() => onToggle(prev => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next; })}
+                    index={i} isLast={i===displayedStations.length-1}/>);
+                })}
+              </motion.div>
+            </AnimatePresence>}
       </div>
-      <div style={{marginTop:"0.75rem",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.62rem",color:"rgba(232,230,224,0.2)",letterSpacing:"0.08em",textAlign:"center"}}>Tap any station to mark as visited · Data stored locally on your device</div>
+      <div style={{marginTop:"0.75rem",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.62rem",color:"rgba(232,230,224,0.2)",letterSpacing:"0.08em",textAlign:"center"}}>
+        Tap any station to mark as visited · Data stored locally on your device</div>
     </div>
   );
 }
 
-function DCProgressPage2({visited}){
-  const allStations=useMemo(()=>{const s=new Set();DC_LINES_DATA.forEach(l=>l.stations.forEach(st=>s.add(st)));return s;},[]);
-  const totalUnique=allStations.size;
-  const visitedUnique=useMemo(()=>{
-    const seen=new Set();
-    DC_LINES_DATA.forEach(l=>l.stations.forEach(st=>{if(visited.has(`${l.id}::${st}`))seen.add(st);}));
+function DCProgressPage2({ visited }) {
+  const allStations = useMemo(() => { const s = new Set(); DC_LINES_DATA.forEach(l => l.stations.forEach(st => s.add(st))); return s; }, []);
+  const totalUnique = allStations.size;
+  const visitedUnique = useMemo(() => {
+    const seen = new Set();
+    DC_LINES_DATA.forEach(l => l.stations.forEach(st => { if (visited.has(`${l.id}::${st}`)) seen.add(st); }));
     return seen.size;
-  },[visited]);
-  const lineStats=useMemo(()=>DC_LINES_DATA.map(l=>({...l,count:l.stations.filter(s=>visited.has(`${l.id}::${s}`)).length,total:l.stations.length})),[visited]);
-  const totalVisits=useMemo(()=>{let n=0;DC_LINES_DATA.forEach(l=>l.stations.forEach(s=>{if(visited.has(`${l.id}::${s}`))n++;}));return n;},[visited]);
-  const pctUnique=totalUnique>0?visitedUnique/totalUnique:0;
-  return(
+  }, [visited]);
+  const lineStats = useMemo(() => DC_LINES_DATA.map(l => ({...l, count:l.stations.filter(s=>visited.has(`${l.id}::${s}`)).length, total:l.stations.length})), [visited]);
+  const totalVisits = useMemo(() => { let n = 0; DC_LINES_DATA.forEach(l => l.stations.forEach(s => { if (visited.has(`${l.id}::${s}`)) n++; })); return n; }, [visited]);
+  const pctUnique = totalUnique > 0 ? visitedUnique / totalUnique : 0;
+  return (
     <div style={{position:"relative",zIndex:1,maxWidth:840,margin:"0 auto",padding:"1.5rem 1rem 3rem"}}>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"1px",background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:4,overflow:"hidden",marginBottom:"1.5rem"}}>
-        {[{label:"Unique Stations",value:`${visitedUnique}/${totalUnique}`,sub:"visited"},{label:"System Progress",value:`${Math.round(pctUnique*100)}%`,sub:"complete"},{label:"Total Visits",value:totalVisits,sub:"across all lines"}].map(({label,value,sub})=>(
+        {[{label:"Unique Stations",value:`${visitedUnique}/${totalUnique}`,sub:"visited"},
+          {label:"System Progress",value:`${Math.round(pctUnique*100)}%`,sub:"complete"},
+          {label:"Total Visits",value:totalVisits,sub:"across all lines"}
+        ].map(({label,value,sub}) => (
           <div key={label} style={{background:"rgba(255,255,255,0.02)",padding:"1.25rem 1rem",textAlign:"center"}}>
             <div className="dc-stat-num" style={{color:"#e8e6e0",marginBottom:"0.2rem"}}>{value}</div>
             <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.62rem",letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(232,230,224,0.3)"}}>{label}</div>
@@ -910,13 +1033,14 @@ function DCProgressPage2({visited}){
         <div style={{flex:1,minWidth:200}}>
           <div style={{fontFamily:"'EB Garamond',serif",fontStyle:"italic",fontSize:"1.5rem",color:"#e8e6e0",marginBottom:"0.4rem"}}>System Coverage</div>
           <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.82rem",color:"rgba(232,230,224,0.45)",lineHeight:1.5}}>
-            You've visited {visitedUnique} of {totalUnique} unique stations across the WMATA network.{visitedUnique===totalUnique?" You've ridden the entire system!":` ${totalUnique-visitedUnique} remaining.`}
+            You've visited {visitedUnique} of {totalUnique} unique stations across the WMATA network.
+            {visitedUnique === totalUnique ? " You've ridden the entire system!" : ` ${totalUnique-visitedUnique} remaining.`}
           </div>
         </div>
       </div>
       <div style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:4,overflow:"hidden"}}>
         <div style={{padding:"0.75rem 1rem",borderBottom:"1px solid rgba(255,255,255,0.07)",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.65rem",letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(232,230,224,0.3)"}}>Line Progress</div>
-        {lineStats.map((l,i)=>(
+        {lineStats.map((l, i) => (
           <motion.div key={l.id} initial={{opacity:0,x:-6}} animate={{opacity:1,x:0}} transition={{delay:i*0.06,duration:0.3}}
             style={{display:"flex",alignItems:"center",gap:"1rem",padding:"1rem",borderBottom:i<lineStats.length-1?"1px solid rgba(255,255,255,0.05)":"none"}}>
             <DCLinePill line={l}/>
@@ -929,7 +1053,9 @@ function DCProgressPage2({visited}){
                 <motion.div initial={{width:0}} animate={{width:`${l.total>0?(l.count/l.total)*100:0}%`}} transition={{duration:0.8,delay:i*0.05,ease:"easeOut"}} style={{height:"100%",background:l.color,borderRadius:2}}/>
               </div>
             </div>
-            <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.78rem",color:l.count===l.total&&l.total>0?l.color:"rgba(232,230,224,0.25)",minWidth:36,textAlign:"right"}}>{l.count===l.total&&l.total>0?"✓":`${Math.round((l.count/l.total)*100)}%`}</div>
+            <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.78rem",color:l.count===l.total&&l.total>0?l.color:"rgba(232,230,224,0.25)",minWidth:36,textAlign:"right"}}>
+              {l.count===l.total&&l.total>0?"✓":`${Math.round((l.count/l.total)*100)}%`}
+            </div>
           </motion.div>
         ))}
       </div>
@@ -937,30 +1063,32 @@ function DCProgressPage2({visited}){
   );
 }
 
-function DCManagePage2({visited,setVisited}){
-  function exportData(){
-    const data={};DC_LINES_DATA.forEach(l=>{data[l.id]=l.stations.filter(s=>visited.has(`${l.id}::${s}`));});
-    const blob=new Blob([JSON.stringify({version:1,visited:[...visited],lines:data},null,2)],{type:"application/json"});
-    const url=URL.createObjectURL(blob);const a=document.createElement("a");
-    a.href=url;a.download=`wmata-stations-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
+function DCManagePage2({ visited, setVisited }) {
+  function exportData() {
+    const data = {}; DC_LINES_DATA.forEach(l => { data[l.id] = l.stations.filter(s => visited.has(`${l.id}::${s}`)); });
+    const blob = new Blob([JSON.stringify({version:1,visited:[...visited],lines:data},null,2)],{type:"application/json"});
+    const url = URL.createObjectURL(blob); const a = document.createElement("a");
+    a.href=url; a.download=`wmata-stations-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
   }
-  function importData(e){
-    const file=e.target.files?.[0];if(!file)return;
-    const reader=new FileReader();
-    reader.onload=()=>{try{const p=JSON.parse(String(reader.result));if(p.visited&&Array.isArray(p.visited)){setVisited(new Set(p.visited));alert("Import successful!");}else alert("Invalid file format.");}catch(err){alert("Error: "+err.message);}};
-    reader.readAsText(file);
+  function importData(e) {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try { const p = JSON.parse(String(reader.result)); if (p.visited && Array.isArray(p.visited)) { setVisited(new Set(p.visited)); alert("Import successful!"); } else alert("Invalid file format."); }
+      catch (err) { alert("Error: " + err.message); }
+    }; reader.readAsText(file);
   }
-  function clearAll(){if(confirm("Clear all visited stations? This cannot be undone."))setVisited(new Set());}
-  const totalVisited=visited.size;
-  const btnBase={padding:"0.6rem 1.2rem",borderRadius:3,fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.72rem",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"};
-  return(
+  function clearAll() { if (confirm("Clear all visited stations? This cannot be undone.")) setVisited(new Set()); }
+  const totalVisited = visited.size;
+  const btnBase = {padding:"0.6rem 1.2rem",borderRadius:3,fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.72rem",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"};
+  return (
     <div style={{position:"relative",zIndex:1,maxWidth:540,margin:"0 auto",padding:"1.5rem 1rem 3rem"}}>
       <div style={{fontFamily:"'EB Garamond',serif",fontStyle:"italic",fontSize:"1.6rem",color:"#e8e6e0",marginBottom:"1.5rem",letterSpacing:"0.01em"}}>Manage Your Data</div>
       {[
         {title:"Export",desc:`Download your ${totalVisited} station records as JSON.`,action:<button onClick={exportData} style={{...btnBase,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#e8e6e0"}}>↓ Export JSON</button>},
         {title:"Import",desc:"Restore from a previously exported JSON file.",action:<label style={{...btnBase,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#e8e6e0",display:"inline-block"}}>↑ Import JSON<input type="file" accept="application/json" style={{display:"none"}} onChange={importData}/></label>},
         {title:"Clear All",desc:"Remove all visited station records.",action:<button onClick={clearAll} style={{...btnBase,background:"rgba(191,13,62,0.1)",border:"1px solid rgba(191,13,62,0.3)",color:"#BF0D3E"}}>✕ Clear All</button>},
-      ].map(({title,desc,action})=>(
+      ].map(({title,desc,action}) => (
         <div key={title} style={{marginBottom:"1px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:4,padding:"1.25rem",display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"1.5rem",flexWrap:"wrap"}}>
           <div style={{flex:1,minWidth:200}}>
             <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontWeight:500,fontSize:"0.88rem",color:"#e8e6e0",marginBottom:"0.35rem"}}>{title}</div>
@@ -977,12 +1105,12 @@ function DCManagePage2({visited,setVisited}){
 }
 
 function DCApp({ onSwitchSystem }) {
-  const [page,setPage]=useState("log");
-  const [visited,setVisited]=useDCVisited();
-  const totalVisited=visited.size;
-  const totalAll=useMemo(()=>DC_LINES_DATA.reduce((acc,l)=>acc+l.stations.length,0),[]);
-  const navItems=[{key:"log",label:"Log Stations"},{key:"progress",label:"Progress"},{key:"manage",label:"Manage"}];
-  return(
+  const [page, setPage] = useState("log");
+  const [visited, setVisited] = useDCVisited();
+  const totalVisited = visited.size;
+  const totalAll = useMemo(() => DC_LINES_DATA.reduce((acc, l) => acc + l.stations.length, 0), []);
+  const navItems = [{key:"log",label:"Log Stations"},{key:"progress",label:"Progress"},{key:"manage",label:"Manage"}];
+  return (
     <div className="dc-root">
       <DCStyles2/>
       <div className="dc-vault-bg"/>
@@ -1003,26 +1131,26 @@ function DCApp({ onSwitchSystem }) {
             </div>
           </div>
           <nav style={{display:"flex",gap:"0.25rem",background:"rgba(255,255,255,0.04)",borderRadius:4,padding:"0.2rem",border:"1px solid rgba(255,255,255,0.07)"}}>
-            {navItems.map(t=>(
-              <button key={t.key} className={`dc-nav-btn${page===t.key?" active":""}`} onClick={()=>setPage(t.key)}>{t.label}</button>
-            ))}
+            {navItems.map(t => (<button key={t.key} className={`dc-nav-btn${page===t.key?" active":""}`} onClick={() => setPage(t.key)}>{t.label}</button>))}
           </nav>
           <div style={{display:"flex",alignItems:"center",gap:"0.75rem"}}>
             <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.72rem",color:"rgba(232,230,224,0.3)",letterSpacing:"0.06em"}}>
               <span style={{color:"#e8e6e0",fontWeight:500}}>{totalVisited}</span>{" "}/ {totalAll} visits
             </div>
-            <button onClick={onSwitchSystem} style={{padding:"0.35rem 0.75rem",border:"1px solid rgba(255,255,255,0.12)",borderRadius:4,background:"transparent",color:"rgba(232,230,224,0.35)",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.65rem",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}>Switch →</button>
+            <button onClick={onSwitchSystem} style={{padding:"0.35rem 0.75rem",border:"1px solid rgba(255,255,255,0.12)",borderRadius:4,background:"transparent",color:"rgba(232,230,224,0.35)",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.65rem",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}>
+              Switch →
+            </button>
           </div>
         </div>
         <div style={{height:3,display:"flex"}}>
-          {DC_LINES_DATA.map(l=><div key={l.id} style={{flex:1,background:l.color,opacity:0.7}}/>)}
+          {DC_LINES_DATA.map(l => <div key={l.id} style={{flex:1,background:l.color,opacity:0.7}}/>)}
         </div>
       </header>
       <AnimatePresence mode="wait">
         <motion.div key={page} initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0}} transition={{duration:0.2}}>
-          {page==="log"&&<DCLogPage2 visited={visited} onToggle={setVisited}/>}
-          {page==="progress"&&<DCProgressPage2 visited={visited}/>}
-          {page==="manage"&&<DCManagePage2 visited={visited} setVisited={setVisited}/>}
+          {page === "log" && <DCLogPage2 visited={visited} onToggle={setVisited}/>}
+          {page === "progress" && <DCProgressPage2 visited={visited}/>}
+          {page === "manage" && <DCManagePage2 visited={visited} setVisited={setVisited}/>}
         </motion.div>
       </AnimatePresence>
       <footer style={{position:"relative",zIndex:1,borderTop:"1px solid rgba(255,255,255,0.06)",padding:"1rem",textAlign:"center",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.6rem",color:"rgba(232,230,224,0.15)",letterSpacing:"0.08em",textTransform:"uppercase"}}>
@@ -1033,37 +1161,24 @@ function DCApp({ onSwitchSystem }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   ROOT APP — handles system routing
+   ROOT APP
 ───────────────────────────────────────────────────────────────── */
 export default function App() {
   const [system, setSystem] = useState(() => readSystemCookie());
 
-  function handleSelectSystem(id) {
-    writeSystemCookie(id);
-    setSystem(id);
-  }
-
+  function handleSelectSystem(id) { writeSystemCookie(id); setSystem(id); }
   function handleSwitchSystem() {
-    // Clear cookie so selector shows again
     document.cookie = `${SYSTEM_COOKIE}=; Max-Age=0; Path=/`;
     setSystem(null);
   }
 
   return (
     <AnimatePresence mode="wait">
-      {!system ? (
-        <motion.div key="selector" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}>
-          <SystemSelector onSelect={handleSelectSystem} />
-        </motion.div>
-      ) : system === "nyc" ? (
-        <motion.div key="nyc" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}>
-          <NYCApp onSwitchSystem={handleSwitchSystem} />
-        </motion.div>
-      ) : (
-        <motion.div key="dc" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}>
-          <DCApp onSwitchSystem={handleSwitchSystem} />
-        </motion.div>
-      )}
+      {!system
+        ? <motion.div key="selector" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}><SystemSelector onSelect={handleSelectSystem}/></motion.div>
+        : system === "nyc"
+          ? <motion.div key="nyc" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}><NYCApp onSwitchSystem={handleSwitchSystem}/></motion.div>
+          : <motion.div key="dc" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}><DCApp onSwitchSystem={handleSwitchSystem}/></motion.div>}
     </AnimatePresence>
   );
 }
