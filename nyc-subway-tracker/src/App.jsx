@@ -145,33 +145,63 @@ function SystemSelector({ onSelect }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   COOKIE + LOCALSTORAGE HELPERS (NYC)
+   LOCALSTORAGE HELPERS (NYC)
+   Rides are stored in localStorage, NOT cookies.
+   Cookies have a 4KB limit — Safari silently drops writes beyond
+   that, so after ~14 rides new entries were never actually saved.
+   localStorage has a ~5MB limit and persists reliably in iOS PWAs.
 ───────────────────────────────────────────────────────────────── */
-const COOKIE_NAME = "nyc_subway_rides";
+const RIDES_KEY = "nyc_subway_rides_v2";
 // FIX: separate keys for user-edited datasets vs remote cache
 const USER_DATA_KEY = "nyc_subway_datasets_v1";
 const REMOTE_CACHE_KEY = "nyc_subway_remote_cache_v1";
 const REMOTE_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-function readRidesFromCookie() {
+function readRidesFromStorage() {
   try {
-    const match = document.cookie.split(";").map(c=>c.trim()).find(c=>c.startsWith(`${COOKIE_NAME}=`));
-    if (!match) return [];
-    const arr = JSON.parse(decodeURIComponent(match.split("=")[1]||""));
+    const raw = localStorage.getItem(RIDES_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
     return Array.isArray(arr) ? arr : [];
   } catch { return []; }
 }
-function writeRidesToCookie(rides) {
+function writeRidesToStorage(rides) {
   try {
-    const value = encodeURIComponent(JSON.stringify(rides));
-    document.cookie = `${COOKIE_NAME}=${value}; Max-Age=${60*60*24*400}; Path=/`;
+    localStorage.setItem(RIDES_KEY, JSON.stringify(rides));
+  } catch (e) {
+    // localStorage full — shouldn't happen at normal ride counts but log it
+    console.warn("[HaveIRidden] Could not save rides:", e);
+  }
+}
+
+// Migrate any existing cookie rides into localStorage on first run,
+// then clear the cookie so we don't double-count.
+function migrateFromCookie() {
+  const COOKIE_NAME = "nyc_subway_rides";
+  try {
+    const match = document.cookie.split(";").map(c=>c.trim()).find(c=>c.startsWith(`${COOKIE_NAME}=`));
+    if (!match) return;
+    const arr = JSON.parse(decodeURIComponent(match.split("=")[1] || ""));
+    if (Array.isArray(arr) && arr.length > 0) {
+      const existing = readRidesFromStorage();
+      if (existing.length === 0) {
+        // Only migrate if localStorage is empty — avoid duplicates
+        writeRidesToStorage(arr);
+        console.log(`[HaveIRidden] Migrated ${arr.length} rides from cookie to localStorage`);
+      }
+    }
+    // Clear the cookie regardless
+    document.cookie = `${COOKIE_NAME}=; Max-Age=0; Path=/`;
   } catch {}
 }
 
-// FIX: single source of truth for rides — only used in NYCApp, passed as props
-function useCookieRides() {
-  const [rides, setRides] = useState(readRidesFromCookie);
-  useEffect(() => writeRidesToCookie(rides), [rides]);
+// Single source of truth for rides — only called once in NYCApp, passed as props
+function useRides() {
+  const [rides, setRides] = useState(() => {
+    migrateFromCookie();        // one-time migration on first render
+    return readRidesFromStorage();
+  });
+  useEffect(() => writeRidesToStorage(rides), [rides]);
   return [rides, setRides];
 }
 
@@ -661,8 +691,9 @@ function NYCApp({ onSwitchSystem }) {
   const [datasetsSource, setDatasetsSource] = useState("remote");
   const [refreshing, setRefreshing] = useState(false);
 
-  // FIX: single useCookieRides() call — passed as props to both LiveRider and StatsPage
-  const [rides, setRides] = useCookieRides();
+  // Single useRides() call — passed as props to both LiveRider and StatsPage.
+  // Uses localStorage (not cookies) to avoid the 4KB iOS Safari silent-drop bug.
+  const [rides, setRides] = useRides();
 
   useEffect(() => {
     const userDs = getUserDatasets();
