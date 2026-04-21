@@ -1,6 +1,6 @@
 # HaveIRidden?
 
-A personal transit tracker for the NYC Subway and Washington Metro (WMATA). Log the train car you're riding, track stations you've visited, and monitor your progress across both systems.
+A personal transit tracker for the NYC Subway, Washington Metro (WMATA), and PATH Train. Log the train car you're riding, track stations you've visited, and monitor your progress across all three systems.
 
 Live at **[haveiridden.joot49.org](https://haveiridden.joot49.org)**
 
@@ -20,6 +20,10 @@ Log trips by selecting the line you boarded, where you got on, and where you got
 
 Visited stations are tracked per line and shown on the **Stats → Stations** page, where you can also manually mark or unmark stops.
 
+### PATH Train
+
+Log trips across the Port Authority Trans-Hudson system connecting New Jersey and New York. Select your line (NWK–WTC, JSQ–33, HOB–33, or HOB–WTC), choose where you boarded, and choose where you exited. Stations you've visited are tracked separately, and the Stats page shows per-line trip counts and full station coverage.
+
 ---
 
 ## Features
@@ -36,6 +40,12 @@ Visited stations are tracked per line and shown on the **Stats → Stations** pa
 - **Progress tracking** — per-line coverage bars, unique station count, trip total, and transfer count
 - **Trip history** — full log of every trip with board station, exit station, and transfer line
 - **Export/import** — save and restore your data as JSON
+
+### PATH Train
+- **Live Rider** — three-step flow: pick your line, pick where you boarded, pick where you exited
+- **Station tracking** — 13 stations across NJ and NY; mark visited manually or via logged trips
+- **Progress tracking** — trips by line with coverage bars, station visit grid, and transfer count
+- **Trip history** — full log with export and import support
 
 ---
 
@@ -55,11 +65,18 @@ Visited stations are tracked per line and shown on the **Stats → Stations** pa
 3. Select the station where you got off — all six lines are shown in the picker, grouped with your board line first. If you transferred, scroll down and pick your exit station from the other line.
 4. Hit **LOG TRIP** to save.
 
+### PATH Train
+
+1. On the **Live Rider** page, select your line.
+2. Select the station where you boarded.
+3. Select the station where you exited.
+4. Hit **LOG TRIP** to save.
+
 ---
 
 ## System selector
 
-On first load you'll be asked to choose between NYC Subway and WMATA. Your choice is saved in a browser cookie and persists across sessions. You can switch systems at any time using the **Switch →** button in the header.
+On first load you'll be asked to choose between NYC Subway, WMATA, and PATH Train. Your choice is saved in a browser cookie and persists across sessions. You can switch systems at any time using the **Switch →** button in the header.
 
 ---
 
@@ -82,7 +99,7 @@ To reset everything back to the built-in defaults, hit **↺ Reset**.
 | Framework | React 19 (Vite) |
 | Animation | Framer Motion |
 | Styling | Inline styles + CSS variables |
-| Fonts | Barlow Condensed, Barlow, IBM Plex Sans (Google Fonts) |
+| Fonts | Barlow Condensed, Barlow, IBM Plex Sans, IBM Plex Mono (Google Fonts) |
 | Storage | Cookie (system preference) + localStorage (rides, visited stations, datasets) |
 | PWA | VitePWA / Workbox — full offline support |
 | Hosting | Vercel / GitHub Pages |
@@ -114,8 +131,10 @@ All data is stored locally in your browser — nothing is sent to any server.
 | `nyc_subway_remote_cache_v1` | Cached remote fleet data for offline use |
 | `wmata_visited_v1` | WMATA visited station set |
 | `wmata_rides_v1` | WMATA trip history |
+| `path_trips_v1` | PATH trip history |
+| `path_visited_v1` | PATH visited station set |
 
-You can export your data as JSON from **Stats → Trip History → Export** (WMATA) or **Stats → History → Export** (NYC) and re-import it on another device.
+You can export your data as JSON from the **Stats → History → Export** or **Stats → Trip History → Export** menu in each system and re-import it on another device.
 
 ---
 

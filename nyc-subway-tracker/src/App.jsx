@@ -12,7 +12,7 @@ function readSystemCookie() {
     const match = document.cookie.split(";").map((c) => c.trim()).find((c) => c.startsWith(`${SYSTEM_COOKIE}=`));
     if (!match) return null;
     const val = match.split("=")[1];
-    return ["nyc", "dc"].includes(val) ? val : null;
+    return ["nyc", "dc", "path"].includes(val) ? val : null;
   } catch { return null; }
 }
 function writeSystemCookie(system) {
@@ -99,29 +99,60 @@ function DCVisual() {
   );
 }
 
+function PATHVisual() {
+  // Schematic of PATH lines intersecting — two crossing lines
+  return (
+    <svg width="200" height="120" viewBox="0 0 200 120" fill="none" style={{overflow:"visible"}}>
+      {/* Background grid suggesting industrial tile */}
+      {[0,1,2,3].map(i=>(
+        <line key={`h${i}`} x1={10} y1={20+i*25} x2={190} y2={20+i*25} stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+      ))}
+      {/* NWK-WTC line — horizontal */}
+      <line x1={15} y1={60} x2={185} y2={60} stroke="#D41F3A" strokeWidth="5" strokeLinecap="round"/>
+      {/* JSQ-33 line — diagonal */}
+      <line x1={20} y1={100} x2={160} y2={20} stroke="#005DAA" strokeWidth="5" strokeLinecap="round"/>
+      {/* HOB-33 line */}
+      <line x1={20} y1={85} x2={185} y2={35} stroke="#4BA3C7" strokeWidth="5" strokeLinecap="round" strokeDasharray="8 3"/>
+      {/* Stations — circles at key intersections */}
+      {[
+        {x:45,y:60,c:"#D41F3A"},{x:100,y:60,c:"#D41F3A"},{x:155,y:60,c:"#D41F3A"},
+        {x:70,y:72,c:"#005DAA"},{x:115,y:47,c:"#005DAA"},
+      ].map((s,i)=>(
+        <circle key={i} cx={s.x} cy={s.y} r={5} fill="#0a0a0f" stroke={s.c} strokeWidth="2.5"/>
+      ))}
+      {/* PATH wordmark suggestion */}
+      <text x="100" y="115" textAnchor="middle" fill="rgba(255,255,255,0.12)" fontSize="9"
+        fontFamily="'IBM Plex Mono',monospace" letterSpacing="4">PATH</text>
+    </svg>
+  );
+}
+
+
 function SystemCard({ id, label, description, features, onSelect, delay }) {
   const isNYC = id === "nyc";
+  const isPATH = id === "path";
+  const accentColor = isNYC ? "#FCCC0A" : isPATH ? "#D41F3A" : "rgba(255,255,255,0.15)";
   return (
     <motion.button
       initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
       transition={{delay,duration:0.4,ease:"easeOut"}} whileHover={{scale:1.02}} whileTap={{scale:0.98}}
       onClick={()=>onSelect(id)}
       className="sys-card-btn">
-      <div style={{border:"1px solid rgba(255,255,255,0.1)",borderRadius:isNYC?0:4,overflow:"hidden",background:isNYC?"#111116":"#0d0e0f",display:"flex",flexDirection:"column",height:"100%"}}>
+      <div style={{border:"1px solid rgba(255,255,255,0.1)",borderRadius:isNYC?0:4,overflow:"hidden",background:isNYC?"#111116":isPATH?"#0c0d10":"#0d0e0f",display:"flex",flexDirection:"column",height:"100%"}}>
         <div style={{height:140,position:"relative",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",
-          background:isNYC?"linear-gradient(135deg,#111116 0%,#1a1a22 100%)":"linear-gradient(135deg,#0d0e0f 0%,#14161a 100%)"}}>
-          {isNYC ? <NYCVisual/> : <DCVisual/>}
+          background:isNYC?"linear-gradient(135deg,#111116 0%,#1a1a22 100%)":isPATH?"linear-gradient(135deg,#0c0d10 0%,#131620 100%)":"linear-gradient(135deg,#0d0e0f 0%,#14161a 100%)"}}>
+          {isNYC ? <NYCVisual/> : isPATH ? <PATHVisual/> : <DCVisual/>}
         </div>
-        <div style={{padding:"1.25rem",borderTop:`3px solid ${isNYC?"#FCCC0A":"rgba(255,255,255,0.15)"}`,flex:1}}>
-          <div style={{fontFamily:isNYC?"'Barlow Condensed',sans-serif":"'IBM Plex Sans',sans-serif",fontWeight:isNYC?900:500,
-            fontSize:isNYC?"1.5rem":"1rem",letterSpacing:isNYC?"0.04em":"0.12em",textTransform:isNYC?"none":"uppercase",
+        <div style={{padding:"1.25rem",borderTop:`3px solid ${accentColor}`,flex:1}}>
+          <div style={{fontFamily:isNYC?"'Barlow Condensed',sans-serif":isPATH?"'IBM Plex Mono',monospace":"'IBM Plex Sans',sans-serif",fontWeight:isNYC?900:isPATH?700:500,
+            fontSize:isNYC?"1.5rem":isPATH?"1.1rem":"1rem",letterSpacing:isNYC?"0.04em":isPATH?"0.08em":"0.12em",textTransform:isPATH?"uppercase":"none",
             color:"#f0f0f4",marginBottom:"0.3rem"}}>{label}</div>
-          <div style={{fontFamily:isNYC?"'Barlow',sans-serif":"'IBM Plex Mono',monospace",fontSize:isNYC?"0.82rem":"0.68rem",
-            color:"rgba(240,240,244,0.4)",letterSpacing:isNYC?"0":"0.08em",lineHeight:1.5}}>{description}</div>
+          <div style={{fontFamily:isPATH?"'IBM Plex Mono',monospace":isNYC?"'Barlow',sans-serif":"'IBM Plex Mono',monospace",fontSize:"0.68rem",
+            color:"rgba(240,240,244,0.4)",letterSpacing:isPATH?"0.04em":isNYC?"0":"0.08em",lineHeight:1.5}}>{description}</div>
           <div style={{display:"flex",gap:"0.35rem",flexWrap:"wrap",marginTop:"0.85rem"}}>
             {features.map(f=>(
               <span key={f} style={{padding:"0.2rem 0.5rem",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",
-                borderRadius:isNYC?4:2,fontFamily:isNYC?"'Barlow',sans-serif":"'IBM Plex Mono',monospace",
+                borderRadius:isPATH?2:isNYC?4:2,fontFamily:isPATH?"'IBM Plex Mono',monospace":isNYC?"'Barlow',sans-serif":"'IBM Plex Mono',monospace",
                 fontSize:"0.65rem",color:"rgba(255,255,255,0.35)",letterSpacing:"0.04em"}}>{f}</span>
             ))}
           </div>
@@ -138,13 +169,14 @@ function SystemSelector({ onSelect }) {
   const systems = [
     { id:"nyc", label:"NYC Subway", description:"Log every train car you've ridden on the MTA network.", features:["Rolling stock IDs","All 24 lines","Ride history"] },
     { id:"dc",  label:"WMATA",      description:"Track every station you've visited across 6 Metro lines.", features:["6 lines","98 stations","Per-line progress"] },
+    { id:"path", label:"PATH train", description:"Log trips across the Port Authority Trans-Hudson system between NJ and NYC.", features:["4 lines","29 stations","Trip log"] },
   ];
   return (
     <>
       <style>{SELECTOR_CSS}</style>
       <div className="sys-root">
         <div className="sys-grid-bg"/>
-        <div style={{position:"relative",zIndex:1,width:"100%",maxWidth:760}}>
+        <div style={{position:"relative",zIndex:1,width:"100%",maxWidth:1060}}>
           <motion.div initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} transition={{duration:0.5}}
             style={{textAlign:"center",marginBottom:"2.5rem"}}>
             <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.65rem",letterSpacing:"0.2em",textTransform:"uppercase",
@@ -830,7 +862,6 @@ const DC_LINES_DATA = [
   {id:"yellow",label:"Yellow",color:"#FFD100",textColor:"#000",endpoints:["Huntington","Greenbelt"],stations:["Huntington","Eisenhower Avenue","King Street–Old Town","Braddock Road","Reagan National Airport","Crystal City","Pentagon City","Pentagon","L'Enfant Plaza","Archives–Navy Memorial–Penn Quarter","Gallery Pl–Chinatown","Mt Vernon Sq/7th St–Convention Center","Shaw–Howard U","U Street/African-Amer Civil War Memorial/Cardozo","Columbia Heights","Georgia Ave–Petworth","Fort Totten","West Hyattsville","Prince George's Plaza","College Park–U of Md","Greenbelt"]},
 ];
 
-/* DC rolling stock data */
 const DC_ROLLING_STOCK = [
   { model: "7000-Series", builder: "Kawasaki", years: "2014–2023", notes: "Current primary fleet" },
   { model: "6000-Series", builder: "Rohr", years: "1982–1983", notes: "Retired 2017" },
@@ -860,9 +891,6 @@ function useDCRides() {
   return [rides, setRides];
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   DC LINE PILL (shared)
-───────────────────────────────────────────────────────────────── */
 function DCLinePill({ line, size="md", selected, onClick }) {
   const sz = size === "sm" ? { minW:28, h:17, fs:9, px:4 } : size === "lg" ? { minW:54, h:32, fs:13, px:10 } : { minW:36, h:22, fs:10, px:8 };
   return (
@@ -879,15 +907,12 @@ function DCLinePill({ line, size="md", selected, onClick }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   DC LIVE RIDER
-───────────────────────────────────────────────────────────────── */
 function DCLiveRider({ dcRides, setDCRides, visited, setVisited }) {
-  const [step, setStep] = useState(1); // 1=line, 2=board, 3=exit
+  const [step, setStep] = useState(1);
   const [selectedLine, setSelectedLine] = useState(null);
   const [boardStation, setBoardStation] = useState(null);
   const [exitStation, setExitStation] = useState(null);
-  const [exitLine, setExitLine] = useState(null); // optional transfer line
+  const [exitLine, setExitLine] = useState(null);
   const [lastRide, setLastRide] = useState(null);
 
   function resetForm() {
@@ -895,35 +920,15 @@ function DCLiveRider({ dcRides, setDCRides, visited, setVisited }) {
   }
 
   function handleSelectLine(line) {
-    setSelectedLine(line);
-    setBoardStation(null);
-    setExitStation(null);
-    setExitLine(null);
-    setStep(2);
+    setSelectedLine(line); setBoardStation(null); setExitStation(null); setExitLine(null); setStep(2);
   }
+  function handleSelectBoard(station) { setBoardStation(station); setExitStation(null); setStep(3); }
+  function handleSelectExit(station, line) { setExitStation(station); setExitLine(line); }
 
-  function handleSelectBoard(station) {
-    setBoardStation(station);
-    setExitStation(null);
-    setStep(3);
-  }
-
-  function handleSelectExit(station, line) {
-    setExitStation(station);
-    setExitLine(line);
-  }
-
-  // All lines grouped for exit picker: board line first, then others
-  // Each entry: { line, stations[] } — board station excluded only from the board line
   const exitLineGroups = useMemo(() => {
     if (!selectedLine || !boardStation) return [];
-    const boardLineGroup = {
-      line: selectedLine,
-      stations: selectedLine.stations.filter(s => s !== boardStation),
-    };
-    const otherGroups = DC_LINES_DATA
-      .filter(l => l.id !== selectedLine.id)
-      .map(l => ({ line: l, stations: l.stations }));
+    const boardLineGroup = { line: selectedLine, stations: selectedLine.stations.filter(s => s !== boardStation) };
+    const otherGroups = DC_LINES_DATA.filter(l => l.id !== selectedLine.id).map(l => ({ line: l, stations: l.stations }));
     return [boardLineGroup, ...otherGroups];
   }, [selectedLine, boardStation]);
 
@@ -931,22 +936,13 @@ function DCLiveRider({ dcRides, setDCRides, visited, setVisited }) {
     if (!selectedLine || !boardStation || !exitStation || !exitLine) return;
     const isTransfer = exitLine.id !== selectedLine.id;
     const ride = {
-      id: crypto.randomUUID(),
-      lineId: selectedLine.id,
-      lineLabel: selectedLine.label,
-      lineColor: selectedLine.color,
-      lineTextColor: selectedLine.textColor,
-      boardStation,
-      exitStation,
-      exitLineId: exitLine.id,
-      exitLineLabel: exitLine.label,
-      exitLineColor: exitLine.color,
-      transferLineId: isTransfer ? exitLine.id : null,
-      transferLineLabel: isTransfer ? exitLine.label : null,
-      timestamp: new Date().toISOString(),
+      id: crypto.randomUUID(), lineId: selectedLine.id, lineLabel: selectedLine.label,
+      lineColor: selectedLine.color, lineTextColor: selectedLine.textColor,
+      boardStation, exitStation, exitLineId: exitLine.id, exitLineLabel: exitLine.label,
+      exitLineColor: exitLine.color, transferLineId: isTransfer ? exitLine.id : null,
+      transferLineLabel: isTransfer ? exitLine.label : null, timestamp: new Date().toISOString(),
     };
     setDCRides(prev => [...prev, ride]);
-    // Mark board station on board line and exit station on exit line as visited
     setVisited(prev => {
       const next = new Set(prev);
       next.add(`${selectedLine.id}::${boardStation}`);
@@ -958,12 +954,10 @@ function DCLiveRider({ dcRides, setDCRides, visited, setVisited }) {
   }
 
   const canLog = selectedLine && boardStation && exitStation && exitLine;
-
   const stepLabels = ["Select Line", "Board Station", "Exit Station"];
 
   return (
     <div style={{maxWidth:640,margin:"0 auto",padding:"1.5rem 1rem 3rem"}}>
-      {/* Step indicator */}
       <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:"2rem"}}>
         {[1,2,3].map((s, i) => (
           <React.Fragment key={s}>
@@ -989,32 +983,28 @@ function DCLiveRider({ dcRides, setDCRides, visited, setVisited }) {
         ))}
       </div>
 
-      {/* Step 1: Select Line */}
       <AnimatePresence mode="wait">
         {step === 1 && (
           <motion.div key="step1" initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-20}} transition={{duration:0.2}}>
-            <div style={{marginBottom:"1rem"}}>
-              <label style={labelStyle}>Select your line</label>
-              <div style={{display:"flex",flexWrap:"wrap",gap:"0.75rem",marginTop:"0.5rem",justifyContent:"center"}}>
-                {DC_LINES_DATA.map(line => (
-                  <motion.button key={line.id} whileHover={{scale:1.05}} whileTap={{scale:0.97}}
-                    onClick={() => handleSelectLine(line)}
-                    style={{padding:"0.7rem 1.4rem",borderRadius:6,background:line.color,color:line.textColor,
-                      fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"1.1rem",letterSpacing:"0.08em",
-                      border:"none",cursor:"pointer",boxShadow:`0 3px 12px ${line.color}44`,
-                      display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem",minWidth:90}}>
-                    <span style={{fontSize:"1.3rem"}}>{line.label}</span>
-                    <span style={{fontSize:"0.62rem",fontWeight:700,letterSpacing:"0.06em",opacity:0.75,textTransform:"uppercase",lineHeight:1.1,textAlign:"center"}}>
-                      {line.endpoints[0].split("–")[0]}↔{line.endpoints[1].split("–")[0]}
-                    </span>
-                  </motion.button>
-                ))}
-              </div>
+            <label style={labelStyle}>Select your line</label>
+            <div style={{display:"flex",flexWrap:"wrap",gap:"0.75rem",marginTop:"0.5rem",justifyContent:"center"}}>
+              {DC_LINES_DATA.map(line => (
+                <motion.button key={line.id} whileHover={{scale:1.05}} whileTap={{scale:0.97}}
+                  onClick={() => handleSelectLine(line)}
+                  style={{padding:"0.7rem 1.4rem",borderRadius:6,background:line.color,color:line.textColor,
+                    fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"1.1rem",letterSpacing:"0.08em",
+                    border:"none",cursor:"pointer",boxShadow:`0 3px 12px ${line.color}44`,
+                    display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem",minWidth:90}}>
+                  <span style={{fontSize:"1.3rem"}}>{line.label}</span>
+                  <span style={{fontSize:"0.62rem",fontWeight:700,letterSpacing:"0.06em",opacity:0.75,textTransform:"uppercase",lineHeight:1.1,textAlign:"center"}}>
+                    {line.endpoints[0].split("–")[0]}↔{line.endpoints[1].split("–")[0]}
+                  </span>
+                </motion.button>
+              ))}
             </div>
           </motion.div>
         )}
 
-        {/* Step 2: Board Station */}
         {step === 2 && selectedLine && (
           <motion.div key="step2" initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-20}} transition={{duration:0.2}}>
             <div style={{display:"flex",alignItems:"center",gap:"0.75rem",marginBottom:"1.25rem"}}>
@@ -1046,7 +1036,6 @@ function DCLiveRider({ dcRides, setDCRides, visited, setVisited }) {
           </motion.div>
         )}
 
-        {/* Step 3: Exit Station */}
         {step === 3 && selectedLine && boardStation && (
           <motion.div key="step3" initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-20}} transition={{duration:0.2}}>
             <div style={{display:"flex",alignItems:"center",gap:"0.75rem",marginBottom:"1rem",flexWrap:"wrap"}}>
@@ -1058,25 +1047,17 @@ function DCLiveRider({ dcRides, setDCRides, visited, setVisited }) {
               </div>
               <button onClick={() => setStep(2)} style={{padding:"0.3rem 0.7rem",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,background:"transparent",color:"rgba(255,255,255,0.4)",fontFamily:"'Barlow Condensed',sans-serif",fontSize:"0.75rem",letterSpacing:"0.06em",cursor:"pointer"}}>← Change</button>
             </div>
-
             <label style={labelStyle}>Where did you exit?</label>
             <div style={{maxHeight:340,overflowY:"auto",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,marginTop:"0.5rem",marginBottom:"1rem"}}>
               {exitLineGroups.map((group, gi) => (
                 <div key={group.line.id}>
-                  {/* Line group header */}
-                  <div style={{
-                    display:"flex",alignItems:"center",gap:"0.6rem",
-                    padding:"0.5rem 1rem",
+                  <div style={{display:"flex",alignItems:"center",gap:"0.6rem",padding:"0.5rem 1rem",
                     background:gi===0?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.02)",
                     borderBottom:"1px solid rgba(255,255,255,0.06)",
-                    borderTop:gi>0?"1px solid rgba(255,255,255,0.08)":"none",
-                    position:"sticky",top:0,zIndex:2,
-                  }}>
-                    <div style={{
-                      padding:"0.15rem 0.55rem",borderRadius:3,
-                      background:group.line.color,color:group.line.textColor,
-                      fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"0.78rem",letterSpacing:"0.06em",
-                    }}>{group.line.label}</div>
+                    borderTop:gi>0?"1px solid rgba(255,255,255,0.08)":"none",position:"sticky",top:0,zIndex:2}}>
+                    <div style={{padding:"0.15rem 0.55rem",borderRadius:3,background:group.line.color,color:group.line.textColor,
+                      fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"0.78rem",letterSpacing:"0.06em"}}>
+                      {group.line.label}</div>
                     <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:"0.78rem",color:"rgba(255,255,255,0.4)",letterSpacing:"0.04em"}}>
                       {group.line.label} Line
                       {gi===0 && <span style={{marginLeft:"0.4rem",fontWeight:400,fontSize:"0.7rem",color:"rgba(255,255,255,0.25)"}}>(your line)</span>}
@@ -1086,20 +1067,17 @@ function DCLiveRider({ dcRides, setDCRides, visited, setVisited }) {
                   {group.stations.map((station, i) => {
                     const isSelected = exitStation === station && exitLine?.id === group.line.id;
                     return (
-                      <button key={`${group.line.id}::${station}`}
-                        onClick={() => handleSelectExit(station, group.line)}
+                      <button key={`${group.line.id}::${station}`} onClick={() => handleSelectExit(station, group.line)}
                         style={{width:"100%",padding:"0.7rem 1rem 0.7rem 1.25rem",
-                          background:isSelected?`${group.line.color}22`:"transparent",
-                          border:"none",
+                          background:isSelected?`${group.line.color}22`:"transparent",border:"none",
                           borderBottom:i<group.stations.length-1?"1px solid rgba(255,255,255,0.04)":"none",
                           cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:"0.75rem",
                           transition:"background 0.1s",color:"#f0f0f4"}}
                         onMouseEnter={e=>{if(!isSelected)e.currentTarget.style.background="rgba(255,255,255,0.05)"}}
                         onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background="transparent"}}>
                         <div style={{width:8,height:8,borderRadius:"50%",
-                          background:isSelected?group.line.color:"rgba(255,255,255,0.15)",
-                          flexShrink:0,border:isSelected?`2px solid ${group.line.color}`:"2px solid rgba(255,255,255,0.15)",
-                          transition:"all 0.15s"}}/>
+                          background:isSelected?group.line.color:"rgba(255,255,255,0.15)",flexShrink:0,
+                          border:isSelected?`2px solid ${group.line.color}`:"2px solid rgba(255,255,255,0.15)",transition:"all 0.15s"}}/>
                         <span style={{fontFamily:"'Barlow',sans-serif",fontSize:"0.88rem",fontWeight:isSelected?600:400,
                           color:isSelected?group.line.color:"#f0f0f4",flex:1}}>{station}</span>
                         {isSelected && <span style={{color:group.line.color,fontSize:"0.9rem",flexShrink:0}}>✓</span>}
@@ -1112,7 +1090,6 @@ function DCLiveRider({ dcRides, setDCRides, visited, setVisited }) {
                 </div>
               ))}
             </div>
-
             <motion.button onClick={handleLog} disabled={!canLog} whileTap={canLog?{scale:0.97}:{}}
               style={{width:"100%",padding:"1rem",borderRadius:12,border:"none",
                 background:canLog?(selectedLine?.color||"#FCCC0A"):"rgba(255,255,255,0.08)",
@@ -1132,16 +1109,14 @@ function DCLiveRider({ dcRides, setDCRides, visited, setVisited }) {
               borderRadius:12,padding:"1rem 1.25rem"}}>
             <div style={{display:"flex",alignItems:"center",gap:"0.35rem",flexShrink:0}}>
               <div style={{width:36,height:36,borderRadius:5,background:lastRide.lineColor,color:lastRide.lineTextColor,
-                display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",
-                fontWeight:900,fontSize:"1rem"}}>
+                display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"1rem"}}>
                 {lastRide.lineLabel}
               </div>
               {lastRide.transferLineId && (
                 <>
                   <span style={{color:"rgba(255,255,255,0.3)",fontSize:"0.9rem"}}>→</span>
                   <div style={{width:36,height:36,borderRadius:5,background:lastRide.exitLineColor,color:DC_LINES_DATA.find(l=>l.id===lastRide.exitLineId)?.textColor||"#fff",
-                    display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",
-                    fontWeight:900,fontSize:"1rem"}}>
+                    display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"1rem"}}>
                     {lastRide.exitLineLabel}
                   </div>
                 </>
@@ -1161,18 +1136,11 @@ function DCLiveRider({ dcRides, setDCRides, visited, setVisited }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   DC STATS PAGE
-───────────────────────────────────────────────────────────────── */
 function DCStatsPage({ visited, dcRides, setDCRides, setVisited }) {
   const [tab, setTab] = useState("progress");
 
-  function deleteRide(id) {
-    setDCRides(prev => prev.filter(r => r.id !== id));
-  }
-  function clearRides() {
-    if (confirm("Delete all DC trips?")) setDCRides([]);
-  }
+  function deleteRide(id) { setDCRides(prev => prev.filter(r => r.id !== id)); }
+  function clearRides() { if (confirm("Delete all DC trips?")) setDCRides([]); }
   function exportData() {
     const blob = new Blob([JSON.stringify({rides:dcRides,visited:[...visited]},null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob); const a=document.createElement("a");
@@ -1249,9 +1217,7 @@ function DCStatsPage({ visited, dcRides, setDCRides, setVisited }) {
         </div>
       )}
 
-      {tab === "stations" && (
-        <DCLogPage visited={visited} onToggle={setVisited}/>
-      )}
+      {tab === "stations" && <DCLogPage visited={visited} onToggle={setVisited}/>}
 
       {tab === "history" && (
         <div style={cardStyle}>
@@ -1321,9 +1287,6 @@ function DCStatsPage({ visited, dcRides, setDCRides, setVisited }) {
                 </div>
               ))}
             </div>
-            <div style={{marginTop:"0.75rem",fontSize:"0.75rem",color:"rgba(255,255,255,0.25)",fontStyle:"italic"}}>
-              WMATA's 7000-Series fleet is the primary car type in service. Car number tracking is not currently supported.
-            </div>
           </div>
         </div>
       )}
@@ -1332,7 +1295,7 @@ function DCStatsPage({ visited, dcRides, setDCRides, setVisited }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   DC LOG STATIONS PAGE (existing station-check page, preserved)
+   DC LOG STATIONS PAGE
 ───────────────────────────────────────────────────────────────── */
 const DC_CSS_GLOBAL = `
   @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=Barlow+Condensed:wght@700;800;900&family=Barlow:wght@400;500;600&display=swap');
@@ -1478,15 +1441,12 @@ function DCLogPage({ visited, onToggle }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   DC APP SHELL  — header matches NYC style
+   DC APP SHELL
 ───────────────────────────────────────────────────────────────── */
 function DCApp({ onSwitchSystem }) {
   const [page, setPage] = useState("live");
   const [visited, setVisited] = useDCVisited();
   const [dcRides, setDCRides] = useDCRides();
-
-  const totalVisited = visited.size;
-  const allStationsTotal = useMemo(() => DC_LINES_DATA.reduce((acc, l) => acc + l.stations.length, 0), []);
 
   const navItems = [
     {key:"live",label:"🚇 Live Rider"},
@@ -1497,11 +1457,8 @@ function DCApp({ onSwitchSystem }) {
     <div className="dc-root">
       <DCStyles2/>
       <div className="dc-vault-bg"/>
-
-      {/* Header — styled like NYC */}
       <header style={{position:"sticky",top:0,zIndex:50,background:"rgba(17,17,22,0.9)",backdropFilter:"blur(14px)",borderBottom:"1px solid rgba(255,255,255,0.07)",padding:"0 1rem"}}>
         <div style={{maxWidth:900,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0.75rem 0",gap:"1rem",flexWrap:"wrap"}}>
-          {/* Brand */}
           <div style={{display:"flex",alignItems:"center",gap:"0.65rem"}}>
             <div style={{width:38,height:38,borderRadius:9,background:"#BF0D3E",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"0.7rem",letterSpacing:"0.02em",textAlign:"center",lineHeight:1.1}}>DC</div>
             <div>
@@ -1509,8 +1466,6 @@ function DCApp({ onSwitchSystem }) {
               <div style={{fontSize:"0.65rem",color:"rgba(255,255,255,0.35)",letterSpacing:"0.1em",textTransform:"uppercase"}}>Washington Metro Tracker</div>
             </div>
           </div>
-
-          {/* Nav */}
           <nav style={{display:"flex",gap:"0.25rem",background:"rgba(255,255,255,0.06)",borderRadius:10,padding:"0.25rem",border:"1px solid rgba(255,255,255,0.07)"}}>
             {navItems.map(t => (
               <button key={t.key} onClick={() => setPage(t.key)}
@@ -1522,8 +1477,6 @@ function DCApp({ onSwitchSystem }) {
               </button>
             ))}
           </nav>
-
-          {/* Stats + Switch */}
           <div style={{display:"flex",alignItems:"center",gap:"1rem"}}>
             <div style={{fontSize:"0.82rem",color:"rgba(255,255,255,0.35)",display:"flex",alignItems:"center",gap:"0.3rem"}}>
               <span style={{color:"#BF0D3E",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:"1.15rem"}}>{dcRides.length}</span> trips
@@ -1534,12 +1487,10 @@ function DCApp({ onSwitchSystem }) {
             </button>
           </div>
         </div>
-        {/* DC line color strip — like the original */}
         <div style={{height:3,display:"flex"}}>
           {DC_LINES_DATA.map(l => <div key={l.id} style={{flex:1,background:l.color,opacity:0.75}}/>)}
         </div>
       </header>
-
       <AnimatePresence mode="wait">
         <motion.div key={page} initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0}} transition={{duration:0.2}}
           style={{position:"relative",zIndex:1}}>
@@ -1547,9 +1498,1335 @@ function DCApp({ onSwitchSystem }) {
           {page === "stats" && <DCStatsPage visited={visited} dcRides={dcRides} setDCRides={setDCRides} setVisited={setVisited}/>}
         </motion.div>
       </AnimatePresence>
-
       <footer style={{position:"relative",zIndex:1,borderTop:"1px solid rgba(255,255,255,0.06)",padding:"1rem",textAlign:"center",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600,fontSize:"0.68rem",color:"rgba(255,255,255,0.15)",letterSpacing:"0.08em",textTransform:"uppercase"}}>
         HaveIRidden? · WMATA Station &amp; Trip Tracker · Not affiliated with WMATA
+      </footer>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+
+/* ═══════════════════════════════════════════════════════════════════
+   PATH TRAIN SYSTEM
+═══════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────
+   PATH DATA — Official PANYNJ line colors
+   NWK-WTC  Red    #DA291C
+   JSQ-33   Blue+Yellow  #0082C6 / #F5C518
+   HOB-33   Blue   #0082C6
+   HOB-WTC  Green  #00953A
+   Brand:   #0047BB
+───────────────────────────────────────────────────────────────── */
+const PATH_BRAND_BLUE = "#0047BB";
+
+const PATH_LINES_DATA = [
+  {
+    id: "nwk-wtc",
+    label: "NWK–WTC",
+    shortLabel: "NWK",
+    bulletLabel: "NWK",
+    color: "#DA291C",
+    textColor: "#fff",
+    endpoints: ["Newark", "World Trade Center"],
+    stations: [
+      "Newark",
+      "Harrison",
+      "Journal Square",
+      "Grove Street",
+      "Exchange Place",
+      "World Trade Center",
+    ],
+  },
+  {
+    id: "jsq-33",
+    label: "JSQ–33",
+    shortLabel: "JSQ",
+    bulletLabel: "JSQ",
+    color: "#0082C6",
+    accentColor: "#F5C518",
+    textColor: "#fff",
+    endpoints: ["Journal Square", "33rd Street"],
+    stations: [
+      "Journal Square",
+      "Grove Street",
+      "Newport",
+      "Christopher Street",
+      "9th Street",
+      "14th Street",
+      "23rd Street",
+      "33rd Street",
+    ],
+  },
+  {
+    id: "hob-33",
+    label: "HOB–33",
+    shortLabel: "HOB",
+    bulletLabel: "HOB",
+    color: "#0082C6",
+    textColor: "#fff",
+    endpoints: ["Hoboken", "33rd Street"],
+    stations: [
+      "Hoboken",
+      "Christopher Street",
+      "9th Street",
+      "14th Street",
+      "23rd Street",
+      "33rd Street",
+    ],
+  },
+  {
+    id: "hob-wtc",
+    label: "HOB–WTC",
+    shortLabel: "WTC",
+    bulletLabel: "WTC",
+    color: "#00953A",
+    textColor: "#fff",
+    endpoints: ["Hoboken", "World Trade Center"],
+    stations: [
+      "Hoboken",
+      "Newport",
+      "Exchange Place",
+      "World Trade Center",
+    ],
+  },
+];
+
+const PATH_ALL_STATIONS = [
+  { name: "Newark",             lines: ["nwk-wtc"],                       state: "NJ" },
+  { name: "Harrison",           lines: ["nwk-wtc"],                       state: "NJ" },
+  { name: "Journal Square",     lines: ["nwk-wtc", "jsq-33"],             state: "NJ" },
+  { name: "Grove Street",       lines: ["nwk-wtc", "jsq-33"],             state: "NJ" },
+  { name: "Exchange Place",     lines: ["nwk-wtc", "hob-wtc"], state: "NJ" },
+  { name: "Newport",            lines: ["jsq-33", "hob-wtc"],  state: "NJ" },
+  { name: "Hoboken",            lines: ["hob-33", "hob-wtc"],  state: "NJ" },
+  { name: "World Trade Center", lines: ["nwk-wtc", "jsq-33", "hob-wtc"], state: "NY" },
+  { name: "Christopher Street", lines: ["jsq-33", "hob-33"],              state: "NY" },
+  { name: "9th Street",         lines: ["jsq-33", "hob-33"],              state: "NY" },
+  { name: "14th Street",        lines: ["jsq-33", "hob-33"],              state: "NY" },
+  { name: "23rd Street",        lines: ["jsq-33", "hob-33"],              state: "NY" },
+  { name: "33rd Street",        lines: ["jsq-33", "hob-33"],              state: "NY" },
+];
+
+const PATH_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+  .path-root {
+    background: #050C1F;
+    color: #D6E0F5;
+    min-height: 100vh;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+
+  /*
+    PATH ceramic tile wall pattern.
+    Replicates the vertical fluted tiles at Grove St, Exchange Place, etc.
+    Narrow glazed tile columns (≈22px wide) divided by dark grout seams.
+    Horizontal mortar seams every ~60px.
+  */
+  .path-tile-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      repeating-linear-gradient(
+        90deg,
+        rgba(0,50,140,0.10)  0px,
+        rgba(0,50,140,0.10)  21px,
+        rgba(0,20,70,0.55)  21px,
+        rgba(0,20,70,0.55)  24px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        transparent         0px,
+        transparent         57px,
+        rgba(0,20,70,0.45)  57px,
+        rgba(0,20,70,0.45)  60px
+      );
+    background-size: 24px 60px;
+    opacity: 1;
+  }
+
+  .path-tile-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 40% at 50% 0%,   rgba(0,71,187,0.22) 0%, transparent 100%),
+      radial-gradient(ellipse 60% 30% at 50% 100%, rgba(0,40,120,0.14) 0%, transparent 100%);
+  }
+
+  .path-line-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+
+  /* JSQ dual-color split badge */
+  .path-jsq-badge {
+    display: inline-flex;
+    align-items: stretch;
+    border-radius: 2px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .path-jsq-half {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+  }
+
+  .path-station-btn {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(0,71,187,0.18);
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.72rem 1rem;
+    transition: background 0.1s;
+    color: #D6E0F5;
+  }
+  .path-station-btn:hover  { background: rgba(0,71,187,0.18); }
+  .path-station-btn.selected { background: rgba(0,71,187,0.32); }
+
+  .path-card {
+    background: rgba(0,25,85,0.55);
+    border: 1px solid rgba(0,71,187,0.4);
+    border-radius: 2px;
+    padding: 1.25rem 1.5rem;
+    backdrop-filter: blur(6px);
+  }
+
+  .path-surface {
+    background: rgba(0,16,58,0.7);
+    border: 1px solid rgba(0,71,187,0.28);
+    border-radius: 2px;
+    backdrop-filter: blur(4px);
+  }
+
+  .path-stat-chip {
+    background: rgba(0,25,85,0.6);
+    border: 1px solid rgba(0,71,187,0.35);
+    border-radius: 2px;
+    padding: 0.9rem 1rem;
+  }
+
+  .path-log-btn {
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: 2px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+
+  .path-tab-btn {
+    padding: 0.45rem 1rem;
+    border: none;
+    border-radius: 1px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .path-line-select-btn {
+    width: 100%;
+    background: rgba(0,16,58,0.7);
+    border: 1px solid rgba(0,71,187,0.32);
+    border-radius: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    transition: all 0.15s;
+    text-align: left;
+    color: #D6E0F5;
+  }
+  .path-line-select-btn:hover {
+    background: rgba(0,50,150,0.5);
+    border-color: rgba(0,71,187,0.7);
+    transform: translateX(3px);
+  }
+
+  .path-hide-scroll::-webkit-scrollbar { display: none; }
+  .path-hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .path-bar-track {
+    width: 100%;
+    height: 5px;
+    background: rgba(0,71,187,0.2);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+`;
+
+function PATHStyles() {
+  useEffect(() => {
+    const el = document.createElement("style");
+    el.id = "path-styles";
+    el.textContent = PATH_CSS;
+    document.head.appendChild(el);
+    return () => { const s = document.getElementById("path-styles"); if (s) s.remove(); };
+  }, []);
+  return null;
+}
+
+/* PATH localStorage */
+const PATH_TRIPS_KEY = "path_trips_v1";
+const PATH_VISITED_KEY = "path_visited_v1";
+
+function loadPATHTrips() { try { const r = localStorage.getItem(PATH_TRIPS_KEY); return r ? JSON.parse(r) : []; } catch { return []; } }
+function savePATHTrips(t) { try { localStorage.setItem(PATH_TRIPS_KEY, JSON.stringify(t)); } catch {} }
+function usePATHTrips() {
+  const [trips, setT] = useState(loadPATHTrips);
+  const setTrips = React.useCallback((fn) => {
+    setT(prev => { const next = typeof fn === "function" ? fn(prev) : fn; savePATHTrips(next); return next; });
+  }, []);
+  return [trips, setTrips];
+}
+
+function loadPATHVisited() { try { const r = localStorage.getItem(PATH_VISITED_KEY); return r ? new Set(JSON.parse(r)) : new Set(); } catch { return new Set(); } }
+function savePATHVisited(s) { try { localStorage.setItem(PATH_VISITED_KEY, JSON.stringify([...s])); } catch {} }
+function usePATHVisited() {
+  const [visited, setV] = useState(loadPATHVisited);
+  const setVisited = React.useCallback((fn) => {
+    setV(prev => { const next = typeof fn === "function" ? fn(prev) : fn; savePATHVisited(next); return next; });
+  }, []);
+  return [visited, setVisited];
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   PATH LINE BADGE
+   JSQ-33 gets a split blue/yellow badge matching the official dual-color
+───────────────────────────────────────────────────────────────── */
+function PATHLineBadge({ line, size = "md", selected, onClick }) {
+  const sizes = {
+    sm: { h: 20, fs: "0.6rem",  px: "0.3rem"  },
+    md: { h: 26, fs: "0.7rem",  px: "0.45rem" },
+    lg: { h: 34, fs: "0.82rem", px: "0.75rem" },
+    xl: { h: 44, fs: "0.95rem", px: "1rem"    },
+  };
+  const s = sizes[size] || sizes.md;
+  const isJSQ = line.id === "jsq-33";
+  const borderStyle = selected
+    ? `2px solid rgba(255,255,255,0.9)`
+    : "2px solid transparent";
+  const shadowStyle = selected
+    ? `0 0 0 2px ${line.color}66, 0 2px 12px ${line.color}44`
+    : "none";
+
+  if (isJSQ) {
+    return (
+      <button onClick={onClick} className="path-line-badge"
+        style={{
+          height: s.h, padding: `0 ${s.px}`, fontSize: s.fs,
+          background: "#F5C518", color: "#000",
+          border: borderStyle,
+          boxShadow: shadowStyle,
+          cursor: onClick ? "pointer" : "default",
+        }}>
+        {line.bulletLabel}
+      </button>
+    );
+  }
+
+  return (
+    <button onClick={onClick} className="path-line-badge"
+      style={{
+        height: s.h, padding: `0 ${s.px}`, fontSize: s.fs,
+        background: line.color, color: line.textColor,
+        border: borderStyle,
+        boxShadow: shadowStyle,
+        cursor: onClick ? "pointer" : "default",
+      }}>
+      {line.bulletLabel}
+    </button>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   PATH ROUTE MAP SVG
+   Accurate geographic schematic: NJ (left) → Hudson tunnel → NY (right)
+   Two tunnel crossings (Downtown + Uptown), 4 lines color-coded.
+───────────────────────────────────────────────────────────────── */
+function PATHRouteMap({ visited }) {
+  // Layout: NJ stations on left, NY on right, Hudson River in middle
+  // Vertical positions chosen to match actual geography
+  const W = 560, H = 300;
+
+  // X positions
+  const xNWK  = 30;   // Newark
+  const xHAR  = 90;   // Harrison
+  const xJSQ  = 150;  // Journal Square
+  const xGRV  = 200;  // Grove Street
+  const xEXP  = 250;  // Exchange Place (NJ waterfront)
+  const xNEWP = 280;  // Newport (JC waterfront)
+  const xHOB  = 200;  // Hoboken (north JC, set back)
+  const xRIVL = 295;  // Hudson left bank
+  const xRIVR = 370;  // Hudson right bank
+  const xWTC  = 400;  // WTC (lower Manhattan)
+  const xCHR  = 430;  // Christopher St
+  const x9TH  = 460;
+  const x14TH = 490;
+  const x23RD = 510;
+  const x33RD = 535;  // 33rd St
+
+  // Y positions
+  const yNWK_WTC  = 200;  // NWK-WTC (lower/downtown)
+  const yJSQ_33   = 145;  // JSQ-33 main spine
+  const yHOB_33   = 95;   // HOB-33 (upper/midtown)
+  const yHOB_WTC  = 170;  // HOB-WTC
+  const yHOB_term = 120;  // Hoboken terminal (shared)
+
+  // Station dot helper
+  const stationDot = (x, y, name, lineColors, labelPos = "below") => {
+    const isVisited = visited.has(name);
+    const r = 5;
+    return (
+      <g key={name}>
+        <circle cx={x} cy={y} r={r + 2} fill={PATH_BRAND_BLUE} opacity={0.3}/>
+        <circle cx={x} cy={y} r={r}
+          fill={isVisited ? "#fff" : "#050C1F"}
+          stroke={isVisited ? "#fff" : "rgba(214,224,245,0.5)"}
+          strokeWidth={isVisited ? 2 : 1.5}/>
+        {isVisited && (
+          <circle cx={x} cy={y} r={2} fill={PATH_BRAND_BLUE}/>
+        )}
+        <text x={x} y={labelPos === "below" ? y + 14 : y - 8}
+          textAnchor="middle"
+          fontSize="7.5" fill="rgba(214,224,245,0.7)"
+          fontFamily="'IBM Plex Mono',monospace" letterSpacing="0.02em">
+          {name.replace("World Trade Center","WTC").replace("Christopher Street","Chr St").replace("Journal Square","JSQ")}
+        </text>
+      </g>
+    );
+  };
+
+  return (
+    <div style={{
+      background: "rgba(0,16,60,0.7)",
+      border: "1px solid rgba(0,71,187,0.4)",
+      borderRadius: 2,
+      padding: "1rem",
+      overflow: "hidden",
+    }}>
+      {/* Legend */}
+      <div style={{display:"flex",gap:"1rem",marginBottom:"0.75rem",flexWrap:"wrap"}}>
+        {PATH_LINES_DATA.map(l => (
+          <div key={l.id} style={{display:"flex",alignItems:"center",gap:"0.35rem"}}>
+            <PATHLineBadge line={l} size="sm"/>
+            <span style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.62rem",
+              color:"rgba(214,224,245,0.55)",letterSpacing:"0.04em"}}>{l.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{overflow:"visible",display:"block"}}>
+        <defs>
+          <linearGradient id="hudsonGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="rgba(0,50,140,0.0)"/>
+            <stop offset="50%" stopColor="rgba(0,50,140,0.18)"/>
+            <stop offset="100%" stopColor="rgba(0,50,140,0.0)"/>
+          </linearGradient>
+        </defs>
+
+        {/* Hudson River band */}
+        <rect x={xRIVL} y={40} width={xRIVR - xRIVL} height={H - 60}
+          fill="url(#hudsonGrad)" rx={2}/>
+        <text x={(xRIVL + xRIVR)/2} y={H - 18}
+          textAnchor="middle" fontSize="7" fill="rgba(0,120,255,0.35)"
+          fontFamily="'IBM Plex Mono',monospace" letterSpacing="0.15em">HUDSON</text>
+
+        {/* NJ / NY labels */}
+        <text x={xJSQ} y={22} textAnchor="middle" fontSize="7.5"
+          fill="rgba(214,224,245,0.35)" fontFamily="'IBM Plex Mono',monospace" letterSpacing="0.12em">NEW JERSEY</text>
+        <text x={x14TH} y={22} textAnchor="middle" fontSize="7.5"
+          fill="rgba(214,224,245,0.35)" fontFamily="'IBM Plex Mono',monospace" letterSpacing="0.12em">NEW YORK</text>
+        <line x1={xRIVL + (xRIVR - xRIVL)/2} y1={28} x2={xRIVL + (xRIVR - xRIVL)/2} y2={H - 25}
+          stroke="rgba(0,71,187,0.25)" strokeWidth={1} strokeDasharray="3 3"/>
+
+        {/* ── NWK-WTC line (red) ── */}
+        {/* NWK → JSQ straight */}
+        <line x1={xNWK} y1={yNWK_WTC} x2={xJSQ} y2={yNWK_WTC}
+          stroke="#DA291C" strokeWidth={3} strokeLinecap="round"/>
+        {/* JSQ → Grove → Exchange (angling slightly down) */}
+        <polyline points={`${xJSQ},${yNWK_WTC} ${xGRV},${yNWK_WTC} ${xEXP},${yNWK_WTC}`}
+          fill="none" stroke="#DA291C" strokeWidth={3} strokeLinejoin="round"/>
+        {/* Tunnel: Exchange → WTC */}
+        <line x1={xEXP} y1={yNWK_WTC} x2={xWTC} y2={yNWK_WTC}
+          stroke="#DA291C" strokeWidth={3} strokeDasharray="6 3" opacity={0.85}/>
+
+        {/* ── HOB-WTC line (green) ── */}
+        {/* Hoboken → Newport */}
+        <polyline points={`${xHOB},${yHOB_term} ${xNEWP},${yHOB_WTC}`}
+          fill="none" stroke="#00953A" strokeWidth={3} strokeLinejoin="round"/>
+        {/* Newport → Exchange Place */}
+        <line x1={xNEWP} y1={yHOB_WTC} x2={xEXP} y2={yNWK_WTC}
+          stroke="#00953A" strokeWidth={3} opacity={0.9}/>
+        {/* Tunnel: Exchange → WTC  (offset slightly) */}
+        <line x1={xEXP} y1={yNWK_WTC - 4} x2={xWTC} y2={yNWK_WTC - 4}
+          stroke="#00953A" strokeWidth={3} strokeDasharray="6 3" opacity={0.85}/>
+
+        {/* ── JSQ-33 line (blue, tunnels uptown) ── */}
+        {/* JSQ → Grove */}
+        <line x1={xJSQ} y1={yJSQ_33} x2={xGRV} y2={yJSQ_33}
+          stroke="#0082C6" strokeWidth={3}/>
+        {/* Grove → Newport (curves north) */}
+        <path d={`M${xGRV},${yJSQ_33} Q${xEXP},${yJSQ_33} ${xNEWP},${yJSQ_33}`}
+          fill="none" stroke="#0082C6" strokeWidth={3}/>
+        {/* Newport → Hoboken */}
+        <line x1={xNEWP} y1={yJSQ_33} x2={xHOB} y2={yHOB_term}
+          stroke="#0082C6" strokeWidth={3}/>
+        {/* Hoboken → tunnel entrance (Newport level) */}
+        <line x1={xHOB} y1={yHOB_term} x2={xNEWP} y2={yHOB_33}
+          stroke="#0082C6" strokeWidth={3}/>
+        {/* Tunnel uptown: Newport → Christopher → 33rd */}
+        <polyline points={`${xNEWP},${yHOB_33} ${xRIVR},${yHOB_33} ${xCHR},${yHOB_33} ${x9TH},${yHOB_33} ${x14TH},${yHOB_33} ${x23RD},${yHOB_33} ${x33RD},${yHOB_33}`}
+          fill="none" stroke="#0082C6" strokeWidth={3}
+          strokeDasharray={`6 3`} opacity={0.9}/>
+
+        {/* ── HOB-33 line (same blue, offset) ── */}
+        <polyline points={`${xHOB},${yHOB_term + 6} ${xNEWP},${yHOB_33 + 6} ${xRIVR},${yHOB_33 + 6} ${xCHR},${yHOB_33 + 6} ${x9TH},${yHOB_33 + 6} ${x14TH},${yHOB_33 + 6} ${x23RD},${yHOB_33 + 6} ${x33RD},${yHOB_33 + 6}`}
+          fill="none" stroke="#0082C6" strokeWidth={3} strokeOpacity={0.5}
+          strokeDasharray="4 2"/>
+
+        {/* ── Station dots ── */}
+        {stationDot(xNWK,  yNWK_WTC,  "Newark",             ["nwk-wtc"], "below")}
+        {stationDot(xHAR,  yNWK_WTC,  "Harrison",           ["nwk-wtc"], "below")}
+        {stationDot(xJSQ,  (yNWK_WTC+yJSQ_33)/2, "Journal Square", ["nwk-wtc","jsq-33"], "above")}
+        {stationDot(xGRV,  (yNWK_WTC+yJSQ_33)/2, "Grove Street",   ["nwk-wtc","jsq-33"], "below")}
+        {stationDot(xEXP,  yNWK_WTC,  "Exchange Place",     ["nwk-wtc","jsq-33","hob-wtc"], "below")}
+        {stationDot(xNEWP, yJSQ_33,   "Newport",            ["jsq-33","hob-33","hob-wtc"], "above")}
+        {stationDot(xHOB,  yHOB_term, "Hoboken",            ["jsq-33","hob-33","hob-wtc"], "above")}
+        {stationDot(xWTC,  yNWK_WTC,  "World Trade Center", ["nwk-wtc","jsq-33","hob-wtc"], "below")}
+        {stationDot(xCHR,  yHOB_33,   "Christopher Street", ["jsq-33","hob-33"], "above")}
+        {stationDot(x9TH,  yHOB_33,   "9th Street",         ["jsq-33","hob-33"], "below")}
+        {stationDot(x14TH, yHOB_33,   "14th Street",        ["jsq-33","hob-33"], "above")}
+        {stationDot(x23RD, yHOB_33,   "23rd Street",        ["jsq-33","hob-33"], "below")}
+        {stationDot(x33RD, yHOB_33,   "33rd Street",        ["jsq-33","hob-33"], "above")}
+      </svg>
+      <div style={{marginTop:"0.5rem",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.6rem",
+        color:"rgba(214,224,245,0.25)",letterSpacing:"0.08em",textTransform:"uppercase",textAlign:"center"}}>
+        ○ = unvisited  ● = visited  – – = tunnel
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   PATH LIVE RIDER — step-based: line → board → exit
+───────────────────────────────────────────────────────────────── */
+function PATHLiveRider({ trips, setTrips, visited, setVisited }) {
+  const [step, setStep] = useState(1);
+  const [selectedLine, setSelectedLine] = useState(null);
+  const [boardStation, setBoardStation] = useState(null);
+  const [exitStation, setExitStation] = useState(null);
+  const [lastTrip, setLastTrip] = useState(null);
+
+  function reset() { setStep(1); setSelectedLine(null); setBoardStation(null); setExitStation(null); }
+  function handleSelectLine(line) { setSelectedLine(line); setBoardStation(null); setExitStation(null); setStep(2); }
+  function handleSelectBoard(st) { setBoardStation(st); setExitStation(null); setStep(3); }
+  function handleSelectExit(st) { setExitStation(st); }
+
+  const exitGroups = useMemo(() => {
+    if (!selectedLine || !boardStation) return [];
+    const sameLineStations = selectedLine.stations.filter(s => s !== boardStation);
+    const otherLines = PATH_LINES_DATA
+      .filter(l => l.id !== selectedLine.id)
+      .map(l => ({ line: l, stations: l.stations.filter(s => s !== boardStation) }));
+    return [{ line: selectedLine, stations: sameLineStations }, ...otherLines];
+  }, [selectedLine, boardStation]);
+
+  function handleLog() {
+    if (!selectedLine || !boardStation || !exitStation) return;
+    const isOnBoardLine = selectedLine.stations.includes(exitStation);
+    const transferLine = isOnBoardLine ? null :
+      PATH_LINES_DATA.find(l => l.id !== selectedLine.id && l.stations.includes(exitStation)) || null;
+    const trip = {
+      id: crypto.randomUUID(),
+      lineId: selectedLine.id, lineLabel: selectedLine.label,
+      lineColor: selectedLine.color, lineTextColor: selectedLine.textColor,
+      boardStation, exitStation,
+      transferLineId: transferLine?.id || null,
+      transferLineLabel: transferLine?.label || null,
+      transferLineColor: transferLine?.color || null,
+      timestamp: new Date().toISOString(),
+    };
+    setTrips(prev => [...prev, trip]);
+    setVisited(prev => {
+      const next = new Set(prev);
+      next.add(boardStation);
+      next.add(exitStation);
+      return next;
+    });
+    setLastTrip(trip);
+    reset();
+  }
+
+  const canLog = selectedLine && boardStation && exitStation;
+  const stepLabels = ["Line", "Board", "Exit"];
+
+  const stepColor = selectedLine?.color || PATH_BRAND_BLUE;
+  const stepTextColor = selectedLine?.textColor || "#fff";
+
+  return (
+    <div style={{maxWidth:580,margin:"0 auto",padding:"1.5rem 1rem 3rem"}}>
+
+      {/* Step indicator */}
+      <div style={{display:"flex",alignItems:"center",marginBottom:"2rem",gap:0}}>
+        {[1,2,3].map((s,i) => (
+          <React.Fragment key={s}>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.3rem",flex:1}}>
+              <div style={{
+                width:34,height:34,borderRadius:2,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.88rem",
+                background: step>s ? "#4ade80" : step===s ? stepColor : "rgba(0,71,187,0.15)",
+                color: step>s ? "#000" : step===s ? stepTextColor : "rgba(214,224,245,0.3)",
+                border: step===s ? `1px solid ${stepColor}` : "1px solid rgba(0,71,187,0.25)",
+                boxShadow: step===s ? `0 0 12px ${stepColor}44` : "none",
+                transition:"all 0.2s",
+              }}>
+                {step > s ? "✓" : s}
+              </div>
+              <div style={{
+                fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.58rem",letterSpacing:"0.14em",
+                textTransform:"uppercase",
+                color: step>=s ? "rgba(214,224,245,0.6)" : "rgba(214,224,245,0.2)",
+              }}>{stepLabels[i]}</div>
+            </div>
+            {i < 2 && (
+              <div style={{flex:2,height:1,
+                background: step>s+1 ? "#4ade80" : step===s+1 ? stepColor : "rgba(0,71,187,0.2)",
+                marginBottom:"1.4rem",transition:"background 0.3s"}}/>
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        {/* STEP 1: Select Line */}
+        {step === 1 && (
+          <motion.div key="p-step1" initial={{opacity:0,x:16}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-16}} transition={{duration:0.18}}>
+            <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.62rem",letterSpacing:"0.16em",
+              textTransform:"uppercase",color:"rgba(214,224,245,0.4)",marginBottom:"1rem"}}>Select your line</div>
+            <div style={{display:"flex",flexDirection:"column",gap:"0.55rem"}}>
+              {PATH_LINES_DATA.map(line => {
+                const isJSQ = line.id === "jsq-33";
+                return (
+                  <motion.button key={line.id} whileHover={{x:4}} whileTap={{scale:0.99}}
+                    onClick={() => handleSelectLine(line)}
+                    className="path-line-select-btn"
+                    style={{borderLeft:`4px solid ${isJSQ ? line.accentColor : line.color}`}}>
+                    <PATHLineBadge line={line} size="xl"/>
+                    <div style={{flex:1,textAlign:"left"}}>
+                      <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.9rem",
+                        letterSpacing:"0.04em",color:"#D6E0F5"}}>{line.label}</div>
+                      <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.72rem",
+                        color:"rgba(214,224,245,0.4)",marginTop:"0.15rem"}}>
+                        {line.endpoints[0]} ↔ {line.endpoints[1]}
+                      </div>
+                    </div>
+                    <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.68rem",
+                      color:"rgba(214,224,245,0.25)",letterSpacing:"0.06em"}}>
+                      {line.stations.length} stops →
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* STEP 2: Board Station */}
+        {step === 2 && selectedLine && (
+          <motion.div key="p-step2" initial={{opacity:0,x:16}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-16}} transition={{duration:0.18}}>
+            <div style={{display:"flex",alignItems:"center",gap:"0.75rem",marginBottom:"1.25rem"}}>
+              <PATHLineBadge line={selectedLine} size="xl"/>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.9rem",
+                  letterSpacing:"0.04em",color:"#D6E0F5"}}>{selectedLine.label}</div>
+                <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.72rem",
+                  color:"rgba(214,224,245,0.4)"}}>{selectedLine.endpoints[0]} ↔ {selectedLine.endpoints[1]}</div>
+              </div>
+              <button onClick={() => setStep(1)}
+                style={{...pathSmallBtnBase,padding:"0.28rem 0.6rem"}}>← back</button>
+            </div>
+            <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.62rem",letterSpacing:"0.16em",
+              textTransform:"uppercase",color:"rgba(214,224,245,0.4)",marginBottom:"0.65rem"}}>
+              Where did you board?
+            </div>
+            <div className="path-surface" style={{overflow:"hidden"}}>
+              {selectedLine.stations.map((station, i) => {
+                const stData = PATH_ALL_STATIONS.find(s => s.name === station);
+                const isVisited = visited.has(station);
+                return (
+                  <button key={station} className="path-station-btn"
+                    onClick={() => handleSelectBoard(station)}
+                    style={{borderBottom:i<selectedLine.stations.length-1?"1px solid rgba(0,71,187,0.18)":"none"}}>
+                    <div style={{width:10,height:10,borderRadius:1,
+                      background:selectedLine.id==="jsq-33"?"#0082C6":selectedLine.color,
+                      flexShrink:0,opacity:0.85}}/>
+                    <div style={{flex:1}}>
+                      <span style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.9rem",fontWeight:500,
+                        color:"#D6E0F5"}}>{station}</span>
+                      {stData && stData.lines.length > 1 && (
+                        <span style={{marginLeft:"0.65rem",fontFamily:"'IBM Plex Mono',monospace",
+                          fontSize:"0.6rem",color:"rgba(214,224,245,0.28)",letterSpacing:"0.04em"}}>
+                          {stData.lines.length} lines
+                        </span>
+                      )}
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:"0.4rem",flexShrink:0}}>
+                      {stData?.state && (
+                        <span style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.6rem",
+                          background:"rgba(0,71,187,0.25)",padding:"0.1rem 0.3rem",borderRadius:1,
+                          color:"rgba(214,224,245,0.45)",letterSpacing:"0.08em"}}>{stData.state}</span>
+                      )}
+                      {isVisited && (
+                        <span style={{width:16,height:16,borderRadius:2,background:"rgba(0,71,187,0.4)",
+                          border:"1px solid rgba(0,71,187,0.6)",
+                          display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.55rem",color:"#D6E0F5"}}>✓</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* STEP 3: Exit Station */}
+        {step === 3 && selectedLine && boardStation && (
+          <motion.div key="p-step3" initial={{opacity:0,x:16}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-16}} transition={{duration:0.18}}>
+            <div style={{display:"flex",alignItems:"center",gap:"0.75rem",marginBottom:"1rem",flexWrap:"wrap"}}>
+              <PATHLineBadge line={selectedLine} size="lg"/>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.82rem",
+                  letterSpacing:"0.04em",color:"#D6E0F5"}}>
+                  Boarded: <span style={{color:selectedLine.id==="jsq-33"?"#0082C6":selectedLine.color}}>{boardStation}</span>
+                </div>
+              </div>
+              <button onClick={() => setStep(2)}
+                style={{...pathSmallBtnBase,padding:"0.28rem 0.6rem"}}>← back</button>
+            </div>
+
+            <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.62rem",letterSpacing:"0.16em",
+              textTransform:"uppercase",color:"rgba(214,224,245,0.4)",marginBottom:"0.65rem"}}>
+              Where did you exit?
+            </div>
+
+            <div className="path-surface path-hide-scroll"
+              style={{maxHeight:360,overflowY:"auto",marginBottom:"1rem"}}>
+              {exitGroups.map((group, gi) => (
+                <div key={group.line.id}>
+                  <div style={{
+                    display:"flex",alignItems:"center",gap:"0.6rem",padding:"0.45rem 1rem",
+                    background:"rgba(0,16,58,0.8)",
+                    borderBottom:"1px solid rgba(0,71,187,0.18)",
+                    borderTop:gi>0?"1px solid rgba(0,71,187,0.12)":"none",
+                    position:"sticky",top:0,zIndex:2,
+                  }}>
+                    <PATHLineBadge line={group.line} size="sm"/>
+                    <span style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.62rem",
+                      letterSpacing:"0.08em",color:"rgba(214,224,245,0.4)",textTransform:"uppercase"}}>
+                      {group.line.label}
+                      {gi===0 && <span style={{marginLeft:"0.5rem",opacity:0.45,fontWeight:400}}>(your line)</span>}
+                      {gi>0  && <span style={{marginLeft:"0.5rem",opacity:0.45,fontWeight:400}}>transfer</span>}
+                    </span>
+                  </div>
+                  {group.stations.map((station, i) => {
+                    const isSelected = exitStation === station;
+                    const stData = PATH_ALL_STATIONS.find(s => s.name === station);
+                    const isVisited = visited.has(station);
+                    const lineColor = group.line.id === "jsq-33" ? "#0082C6" : group.line.color;
+                    return (
+                      <button key={`${group.line.id}::${station}`}
+                        className={`path-station-btn${isSelected?" selected":""}`}
+                        onClick={() => handleSelectExit(station)}
+                        style={{
+                          borderBottom:i<group.stations.length-1?"1px solid rgba(0,71,187,0.12)":"none",
+                          background:isSelected?`rgba(0,71,187,0.3)`:undefined,
+                        }}>
+                        <div style={{width:8,height:8,borderRadius:1,
+                          background:isSelected?lineColor:"rgba(0,71,187,0.35)",
+                          flexShrink:0,transition:"all 0.15s",
+                          border:isSelected?`1px solid ${lineColor}`:"1px solid rgba(0,71,187,0.5)"}}/>
+                        <span style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.88rem",
+                          fontWeight:isSelected?600:400,
+                          color:isSelected?lineColor:"#D6E0F5",flex:1}}>{station}</span>
+                        <div style={{display:"flex",alignItems:"center",gap:"0.4rem",flexShrink:0}}>
+                          {stData?.state && (
+                            <span style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.58rem",
+                              background:"rgba(0,71,187,0.2)",padding:"0.1rem 0.3rem",borderRadius:1,
+                              color:"rgba(214,224,245,0.35)",letterSpacing:"0.08em"}}>{stData.state}</span>
+                          )}
+                          {isSelected && <span style={{color:lineColor,fontSize:"0.85rem"}}>✓</span>}
+                          {!isSelected && isVisited && (
+                            <span style={{width:14,height:14,borderRadius:1,background:"rgba(0,71,187,0.3)",
+                              border:"1px solid rgba(0,71,187,0.5)",
+                              display:"flex",alignItems:"center",justifyContent:"center",
+                              fontSize:"0.55rem",color:"rgba(214,224,245,0.5)"}}>✓</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            <motion.button className="path-log-btn" onClick={handleLog} disabled={!canLog}
+              whileTap={canLog?{scale:0.98}:{}}
+              style={{
+                background: canLog
+                  ? `linear-gradient(90deg, ${selectedLine.id==="jsq-33"?"#F5C518":selectedLine.color} 0%, ${selectedLine.id==="jsq-33"?"#0082C6":selectedLine.color} 100%)`
+                  : "rgba(0,71,187,0.12)",
+                color: canLog ? (selectedLine.id==="jsq-33"?"#000":selectedLine.textColor) : "rgba(214,224,245,0.2)",
+                cursor: canLog?"pointer":"not-allowed",
+                boxShadow: canLog ? `0 4px 20px ${selectedLine.color}44` : "none",
+              }}>
+              LOG TRIP →
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Success toast */}
+      <AnimatePresence>
+        {lastTrip && (
+          <motion.div key={lastTrip.id}
+            initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0}}
+            style={{marginTop:"1.5rem",padding:"1rem 1.25rem",
+              background:"rgba(0,50,30,0.5)",
+              border:"1px solid rgba(0,149,58,0.4)",
+              borderRadius:2,display:"flex",alignItems:"flex-start",gap:"1rem"}}>
+            <PATHLineBadge line={PATH_LINES_DATA.find(l=>l.id===lastTrip.lineId)||PATH_LINES_DATA[0]} size="lg"/>
+            <div>
+              <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.8rem",
+                color:"#4ade80",letterSpacing:"0.08em",textTransform:"uppercase"}}>✓ Trip logged</div>
+              <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.85rem",
+                color:"rgba(214,224,245,0.55)",marginTop:"0.25rem"}}>
+                {lastTrip.boardStation} → {lastTrip.exitStation}
+                {lastTrip.transferLineLabel && (
+                  <span style={{color:"rgba(214,224,245,0.35)"}}> · via {lastTrip.transferLineLabel}</span>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   PATH shared micro-style  (must come before PATHStatsPage)
+───────────────────────────────────────────────────────────────── */
+const pathSmallBtnBase = {
+  padding:"0.35rem 0.7rem",
+  border:"1px solid rgba(0,71,187,0.4)",
+  borderRadius:2,
+  background:"rgba(0,50,150,0.2)",
+  color:"rgba(214,224,245,0.65)",
+  fontFamily:"'IBM Plex Mono',monospace",
+  fontWeight:600,
+  fontSize:"0.7rem",
+  letterSpacing:"0.08em",
+  textTransform:"uppercase",
+  cursor:"pointer",
+  display:"inline-flex",
+  alignItems:"center",
+  gap:"0.25rem",
+  whiteSpace:"nowrap",
+};
+
+/* ─────────────────────────────────────────────────────────────────
+   PATH STATS PAGE
+───────────────────────────────────────────────────────────────── */
+function PATHStatsPage({ trips, setTrips, visited, setVisited }) {
+  const [tab, setTab] = useState("overview");
+
+  const visitedCount = visited.size;
+  const totalStations = PATH_ALL_STATIONS.length;
+  const lineTrips = useMemo(() => {
+    const c = {};
+    trips.forEach(t => { c[t.lineId] = (c[t.lineId]||0)+1; });
+    return c;
+  }, [trips]);
+
+  function deleteTrip(id) { setTrips(prev => prev.filter(t => t.id !== id)); }
+  function clearTrips() { if (confirm("Delete all PATH trips?")) setTrips([]); }
+  function exportData() {
+    const blob = new Blob([JSON.stringify({trips,visited:[...visited]},null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);const a=document.createElement("a");
+    a.href=url;a.download=`path-data-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
+  }
+  function importData(e) {
+    const file=e.target.files?.[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const p=JSON.parse(String(reader.result));
+        if(p.trips&&Array.isArray(p.trips))setTrips(p.trips);
+        if(p.visited&&Array.isArray(p.visited))setVisited(new Set(p.visited));
+        alert("Import successful!");
+      }catch(err){alert("Error: "+err.message);}
+    };reader.readAsText(file);
+  }
+  function clearVisited() { if(confirm("Clear all visited stations?")) setVisited(new Set()); }
+
+  const activeTab = (k) => ({
+    background: tab===k ? PATH_BRAND_BLUE : "transparent",
+    color: tab===k ? "#fff" : "rgba(214,224,245,0.4)",
+    borderBottom: tab===k ? `2px solid rgba(255,255,255,0.3)` : "2px solid transparent",
+  });
+
+  return (
+    <div style={{maxWidth:900,margin:"0 auto",padding:"1.5rem 1rem 3rem"}}>
+      {/* Sub-tabs */}
+      <div style={{display:"flex",gap:"0.2rem",background:"rgba(0,16,58,0.7)",
+        border:"1px solid rgba(0,71,187,0.3)",borderRadius:2,padding:"0.2rem",
+        marginBottom:"1.5rem",overflowX:"auto"}} className="path-hide-scroll">
+        {[{key:"overview",label:"Overview"},{key:"stations",label:"Stations"},{key:"history",label:"History"},{key:"manage",label:"Manage"}].map(t=>(
+          <button key={t.key} onClick={()=>setTab(t.key)}
+            className="path-tab-btn"
+            style={activeTab(t.key)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* OVERVIEW */}
+      {tab === "overview" && (
+        <div style={{display:"flex",flexDirection:"column",gap:"1.25rem"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:"0.65rem"}}>
+            {[
+              {label:"Total Trips",   value:trips.length,                                  color:"#DA291C"},
+              {label:"Stations Visited", value:`${visitedCount}/${totalStations}`,          color:"#0082C6"},
+              {label:"Transfers",     value:trips.filter(t=>t.transferLineId).length,       color:"#00953A"},
+              {label:"Lines Used",    value:Object.keys(lineTrips).length+"/"+PATH_LINES_DATA.length, color:"#F5C518"},
+            ].map(({label,value,color})=>(
+              <div key={label} className="path-stat-chip">
+                <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.58rem",letterSpacing:"0.14em",
+                  textTransform:"uppercase",color:"rgba(214,224,245,0.35)",marginBottom:"0.4rem"}}>{label}</div>
+                <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"1.9rem",
+                  color,lineHeight:1}}>{value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Line coverage bars */}
+          <div className="path-card">
+            <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.72rem",
+              letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(214,224,245,0.4)",
+              marginBottom:"1rem"}}>Trips by line</div>
+            <div style={{display:"flex",flexDirection:"column",gap:"0.8rem"}}>
+              {PATH_LINES_DATA.map(line=>{
+                const count = lineTrips[line.id]||0;
+                const maxTrips = Math.max(...Object.values({...lineTrips,_:1}));
+                const lineColor = line.id === "jsq-33" ? "#0082C6" : line.color;
+                return(
+                  <div key={line.id}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"0.4rem"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:"0.65rem"}}>
+                        <PATHLineBadge line={line} size="md"/>
+                        <span style={{fontFamily:"'IBM Plex Sans',sans-serif",fontWeight:500,
+                          fontSize:"0.88rem",color:"#D6E0F5"}}>{line.label}</span>
+                      </div>
+                      <span style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.82rem",
+                        color:count>0?lineColor:"rgba(214,224,245,0.2)"}}>{count} trip{count!==1?"s":""}</span>
+                    </div>
+                    <div className="path-bar-track">
+                      <motion.div initial={{width:0}}
+                        animate={{width:count>0?`${(count/maxTrips)*100}%`:"0%"}}
+                        transition={{duration:0.7,ease:"easeOut"}}
+                        style={{height:"100%",background:count>0
+                          ? (line.id==="jsq-33"
+                              ? "linear-gradient(90deg,#F5C518,#0082C6)"
+                              : lineColor)
+                          : "transparent"}}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Station coverage grid */}
+          <div className="path-card">
+            <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.72rem",
+              letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(214,224,245,0.4)",
+              marginBottom:"1rem"}}>Station coverage
+              <span style={{marginLeft:"0.75rem",color:PATH_BRAND_BLUE}}>{visitedCount}/{totalStations}</span>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(175px,1fr))",gap:"0.45rem"}}>
+              {PATH_ALL_STATIONS.map(st=>{
+                const isVisited = visited.has(st.name);
+                const lines = PATH_LINES_DATA.filter(l=>st.lines.includes(l.id));
+                return(
+                  <motion.div key={st.name} whileHover={{x:2}}
+                    style={{
+                      padding:"0.55rem 0.7rem",borderRadius:2,
+                      border:`1px solid ${isVisited?"rgba(0,130,198,0.45)":"rgba(0,71,187,0.2)"}`,
+                      background:isVisited?"rgba(0,71,187,0.15)":"rgba(0,16,58,0.4)",
+                      display:"flex",alignItems:"center",gap:"0.55rem",
+                    }}>
+                    <div style={{display:"flex",gap:"0.2rem",flexShrink:0}}>
+                      {lines.map(l=>(
+                        <div key={l.id} style={{width:4,height:18,borderRadius:1,
+                          background:l.id==="jsq-33"?"#0082C6":l.color,
+                          opacity:isVisited?1:0.3}}/>
+                      ))}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.78rem",
+                        fontWeight:isVisited?600:400,
+                        color:isVisited?"#D6E0F5":"rgba(214,224,245,0.4)",
+                        whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{st.name}</div>
+                      <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.56rem",
+                        color:"rgba(214,224,245,0.22)",letterSpacing:"0.08em"}}>{st.state}</div>
+                    </div>
+                    {isVisited && (
+                      <div style={{width:14,height:14,borderRadius:1,background:PATH_BRAND_BLUE,
+                        display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+                          <path d="M1 3L3 5L7 1" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      
+
+      {/* STATIONS */}
+      {tab === "stations" && (
+        <div className="path-card">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+            marginBottom:"1rem",flexWrap:"wrap",gap:"0.5rem"}}>
+            <span style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.75rem",
+              letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(214,224,245,0.5)"}}>
+              Stations
+              <span style={{marginLeft:"0.65rem",color:PATH_BRAND_BLUE}}>{visitedCount}/{totalStations}</span>
+            </span>
+            <div style={{display:"flex",gap:"0.5rem"}}>
+              <button onClick={()=>setVisited(new Set(PATH_ALL_STATIONS.map(s=>s.name)))}
+                style={pathSmallBtnBase}>Mark All</button>
+              <button onClick={clearVisited}
+                style={{...pathSmallBtnBase,borderColor:"rgba(218,41,28,0.45)",color:"rgba(255,120,100,0.8)"}}>Clear All</button>
+            </div>
+          </div>
+          <div className="path-surface" style={{overflow:"hidden"}}>
+            {PATH_ALL_STATIONS.map((st,i)=>{
+              const isVisited = visited.has(st.name);
+              const lines = PATH_LINES_DATA.filter(l=>st.lines.includes(l.id));
+              return(
+                <motion.button key={st.name}
+                  onClick={()=>setVisited(prev=>{const next=new Set(prev);next.has(st.name)?next.delete(st.name):next.add(st.name);return next;})}
+                  className="path-station-btn"
+                  style={{
+                    borderBottom:i<PATH_ALL_STATIONS.length-1?"1px solid rgba(0,71,187,0.15)":"none",
+                    background:isVisited?"rgba(0,71,187,0.15)":"transparent",
+                  }}
+                  whileHover={{backgroundColor:"rgba(0,71,187,0.2)"}}>
+                  <div style={{display:"flex",gap:"0.2rem",flexShrink:0}}>
+                    {lines.map(l=>(
+                      <div key={l.id} style={{width:5,height:22,borderRadius:1,
+                        background:l.id==="jsq-33"?"#0082C6":l.color,opacity:isVisited?1:0.28}}/>
+                    ))}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.92rem",
+                      fontWeight:isVisited?600:400,
+                      color:isVisited?"#D6E0F5":"rgba(214,224,245,0.5)"}}>{st.name}</div>
+                    <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.6rem",
+                      color:"rgba(214,224,245,0.22)",letterSpacing:"0.08em",marginTop:"0.1rem"}}>
+                      {st.state} · {st.lines.length} line{st.lines.length>1?"s":""}
+                    </div>
+                  </div>
+                  <div style={{width:20,height:20,borderRadius:2,flexShrink:0,
+                    border:`1px solid ${isVisited?PATH_BRAND_BLUE:"rgba(0,71,187,0.3)"}`,
+                    background:isVisited?PATH_BRAND_BLUE:"transparent",
+                    display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
+                    {isVisited&&<svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path d="M1 4L3.8 7L9 1" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* HISTORY */}
+      {tab === "history" && (
+        <div className="path-card">
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+            marginBottom:"1rem",flexWrap:"wrap",gap:"0.5rem"}}>
+            <span style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.75rem",
+              letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(214,224,245,0.5)"}}>
+              Trip History <span style={{color:PATH_BRAND_BLUE}}>{trips.length}</span>
+            </span>
+            <div style={{display:"flex",gap:"0.5rem"}}>
+              <button onClick={exportData} style={pathSmallBtnBase}>⬇ Export</button>
+              <button onClick={clearTrips}
+                style={{...pathSmallBtnBase,borderColor:"rgba(218,41,28,0.45)",color:"rgba(255,120,100,0.8)"}}>🗑 Clear</button>
+            </div>
+          </div>
+          {trips.length === 0 ? (
+            <div style={{padding:"2.5rem",textAlign:"center",fontFamily:"'IBM Plex Mono',monospace",
+              fontSize:"0.72rem",color:"rgba(214,224,245,0.18)",letterSpacing:"0.1em",textTransform:"uppercase"}}>
+              No trips logged yet
+            </div>
+          ) : (
+            <div style={{overflowX:"auto",borderRadius:2,border:"1px solid rgba(0,71,187,0.25)"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.85rem"}}>
+                <thead>
+                  <tr style={{background:"rgba(0,16,58,0.8)"}}>
+                    {["Date / Time","Line","Boarded","Exited","Xfer",""].map(h=>(
+                      <th key={h} style={{padding:"0.6rem 0.8rem",textAlign:"left",
+                        fontFamily:"'IBM Plex Mono',monospace",fontWeight:600,fontSize:"0.62rem",
+                        letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(214,224,245,0.3)",
+                        borderBottom:"1px solid rgba(0,71,187,0.2)",whiteSpace:"nowrap"}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...trips].reverse().map((t,i)=>{
+                    const line = PATH_LINES_DATA.find(l=>l.id===t.lineId)||PATH_LINES_DATA[0];
+                    return(
+                      <tr key={t.id} style={{
+                        background:i%2===0?"transparent":"rgba(0,71,187,0.05)",
+                        borderBottom:"1px solid rgba(0,71,187,0.1)"}}>
+                        <td style={{padding:"0.55rem 0.8rem",fontFamily:"'IBM Plex Mono',monospace",
+                          fontSize:"0.7rem",color:"rgba(214,224,245,0.3)",whiteSpace:"nowrap"}}>
+                          {new Date(t.timestamp).toLocaleString()}
+                        </td>
+                        <td style={{padding:"0.55rem 0.8rem"}}><PATHLineBadge line={line} size="sm"/></td>
+                        <td style={{padding:"0.55rem 0.8rem",fontFamily:"'IBM Plex Sans',sans-serif",
+                          fontSize:"0.82rem",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+                          color:"#D6E0F5"}}>{t.boardStation}</td>
+                        <td style={{padding:"0.55rem 0.8rem",fontFamily:"'IBM Plex Sans',sans-serif",
+                          fontSize:"0.82rem",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+                          color:"#D6E0F5"}}>{t.exitStation}</td>
+                        <td style={{padding:"0.55rem 0.8rem"}}>
+                          {t.transferLineLabel ? (
+                            <PATHLineBadge line={PATH_LINES_DATA.find(l=>l.id===t.transferLineId)||PATH_LINES_DATA[0]} size="sm"/>
+                          ) : <span style={{color:"rgba(214,224,245,0.2)",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.7rem"}}>—</span>}
+                        </td>
+                        <td style={{padding:"0.55rem 0.8rem"}}>
+                          <button onClick={()=>deleteTrip(t.id)}
+                            style={{...pathSmallBtnBase,borderColor:"rgba(218,41,28,0.45)",color:"rgba(255,120,100,0.8)",
+                              padding:"0.22rem 0.45rem",fontSize:"0.68rem"}}>✕</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MANAGE */}
+      {tab === "manage" && (
+        <div style={{display:"flex",flexDirection:"column",gap:"0.75rem"}}>
+          {[
+            {title:"Export Data",desc:`${trips.length} trips and ${visited.size} station visits → JSON`,
+              action:<button onClick={exportData} style={pathSmallBtnBase}>⬇ Export</button>},
+            {title:"Import Data",desc:"Restore from a previously exported JSON file",
+              action:<label style={{...pathSmallBtnBase,cursor:"pointer"}}>⬆ Import
+                <input type="file" accept="application/json" style={{display:"none"}} onChange={importData}/>
+              </label>},
+            {title:"Clear Trip History",desc:"Permanently delete all logged trips",
+              action:<button onClick={clearTrips}
+                style={{...pathSmallBtnBase,borderColor:"rgba(218,41,28,0.45)",color:"rgba(255,120,100,0.8)"}}>Delete All</button>},
+            {title:"Clear Visited Stations",desc:"Reset all station visit records",
+              action:<button onClick={clearVisited}
+                style={{...pathSmallBtnBase,borderColor:"rgba(218,41,28,0.45)",color:"rgba(255,120,100,0.8)"}}>Reset</button>},
+          ].map(({title,desc,action})=>(
+            <div key={title} className="path-card"
+              style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"1.5rem",flexWrap:"wrap"}}>
+              <div>
+                <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.8rem",
+                  letterSpacing:"0.06em",color:"#D6E0F5",marginBottom:"0.25rem"}}>{title}</div>
+                <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.78rem",
+                  color:"rgba(214,224,245,0.35)"}}>{desc}</div>
+              </div>
+              {action}
+            </div>
+          ))}
+          {/* Fleet info */}
+          <div className="path-card" style={{marginTop:"0.25rem"}}>
+            <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.72rem",
+              letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(214,224,245,0.4)",marginBottom:"0.85rem"}}>
+              Rolling Stock
+            </div>
+            {[
+              {car:"PA-5",builder:"Bombardier / Kawasaki",years:"2010–2024",notes:"Current fleet · 422 cars"},
+              {car:"PA-4",builder:"Kinki Sharyo",years:"1984–1985",notes:"Retired"},
+            ].map(s=>(
+              <div key={s.car} style={{display:"flex",alignItems:"center",gap:"1rem",
+                padding:"0.6rem 0",borderBottom:"1px solid rgba(0,71,187,0.15)"}}>
+                <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"0.88rem",
+                  color:"#D6E0F5",minWidth:50}}>{s.car}</div>
+                <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.8rem",
+                  color:"rgba(214,224,245,0.4)"}}>{s.builder} · {s.years}</div>
+                <div style={{marginLeft:"auto",fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.66rem",
+                  color:"rgba(214,224,245,0.2)",letterSpacing:"0.04em"}}>{s.notes}</div>
+              </div>
+            ))}
+            <div style={{marginTop:"0.75rem",fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"0.72rem",
+              color:"rgba(214,224,245,0.2)",lineHeight:1.5}}>
+              PA-5 car numbers run from 5001–5422. Car-level tracking not supported for PATH.
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   PATH APP SHELL
+───────────────────────────────────────────────────────────────── */
+function PATHApp({ onSwitchSystem }) {
+  const [page, setPage] = useState("live");
+  const [trips, setTrips] = usePATHTrips();
+  const [visited, setVisited] = usePATHVisited();
+
+  return (
+    <div className="path-root">
+      <PATHStyles/>
+      <div className="path-tile-bg"/>
+
+      <header style={{
+        position:"sticky",top:0,zIndex:50,
+        background:"rgba(0,10,38,0.92)",
+        backdropFilter:"blur(16px)",
+        borderBottom:"1px solid rgba(0,71,187,0.4)",
+        padding:"0 1rem",
+      }}>
+        <div style={{maxWidth:900,margin:"0 auto",display:"flex",alignItems:"center",
+          justifyContent:"space-between",padding:"0.75rem 0",gap:"1rem",flexWrap:"wrap"}}>
+
+          {/* Brand — PATH-blue badge with the PORT AUTHORITY aesthetic */}
+          <div style={{display:"flex",alignItems:"center",gap:"0.75rem"}}>
+            <div style={{
+              display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+              width:50,height:40,background:PATH_BRAND_BLUE,borderRadius:2,flexShrink:0,
+              boxShadow:`0 0 20px ${PATH_BRAND_BLUE}66`,
+            }}>
+              <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:500,fontSize:"0.48rem",
+                letterSpacing:"0.18em",color:"rgba(255,255,255,0.65)",textTransform:"uppercase",lineHeight:1}}>PORT</div>
+              <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"1.1rem",
+                letterSpacing:"0.04em",color:"#fff",lineHeight:1.1}}>PATH</div>
+              <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:500,fontSize:"0.44rem",
+                letterSpacing:"0.12em",color:"rgba(255,255,255,0.65)",textTransform:"uppercase",lineHeight:1}}>TRAIN</div>
+            </div>
+            <div>
+              <div style={{fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:"1.15rem",
+                letterSpacing:"0.05em",lineHeight:1,color:"#D6E0F5"}}>
+                HaveIRidden<span style={{color:PATH_BRAND_BLUE}}>?</span>
+              </div>
+              <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.55rem",
+                color:"rgba(214,224,245,0.3)",letterSpacing:"0.16em",textTransform:"uppercase",marginTop:"0.18rem"}}>
+                PATH Train Tracker
+              </div>
+            </div>
+          </div>
+
+          {/* Nav */}
+          <nav style={{display:"flex",gap:"0.2rem",background:"rgba(0,16,58,0.7)",
+            border:"1px solid rgba(0,71,187,0.35)",borderRadius:2,padding:"0.2rem"}}>
+            {[{key:"live",label:"↓ Live Rider"},{key:"stats",label:"≡ Stats"}].map(t=>(
+              <button key={t.key} onClick={()=>setPage(t.key)}
+                className="path-tab-btn"
+                style={{
+                  background:page===t.key?PATH_BRAND_BLUE:"transparent",
+                  color:page===t.key?"#fff":"rgba(214,224,245,0.4)",
+                }}>
+                {t.label}
+              </button>
+            ))}
+          </nav>
+
+          {/* Counter + switch */}
+          <div style={{display:"flex",alignItems:"center",gap:"1rem"}}>
+            <div style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.72rem",
+              color:"rgba(214,224,245,0.3)",display:"flex",alignItems:"center",gap:"0.35rem"}}>
+              <span style={{color:PATH_BRAND_BLUE,fontWeight:700,fontSize:"1.05rem"}}>{trips.length}</span> trips
+            </div>
+            <button onClick={onSwitchSystem}
+              style={{padding:"0.3rem 0.65rem",border:`1px solid rgba(0,71,187,0.4)`,borderRadius:2,
+                background:"transparent",color:"rgba(214,224,245,0.35)",
+                fontFamily:"'IBM Plex Mono',monospace",fontSize:"0.62rem",letterSpacing:"0.1em",
+                textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}>
+              Switch →
+            </button>
+          </div>
+        </div>
+
+        {/* Line color strip */}
+        <div style={{height:3,display:"flex"}}>
+          <div style={{flex:1,background:"#DA291C"}}/>
+          <div style={{flex:1,background:"#F5C518"}}/>
+          <div style={{flex:1,background:"#0082C6"}}/>
+          <div style={{flex:1,background:"#00953A"}}/>
+        </div>
+      </header>
+
+      <AnimatePresence mode="wait">
+        <motion.div key={page} initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0}}
+          transition={{duration:0.2}} style={{position:"relative",zIndex:1}}>
+          {page === "live" && <PATHLiveRider trips={trips} setTrips={setTrips} visited={visited} setVisited={setVisited}/>}
+          {page === "stats" && <PATHStatsPage trips={trips} setTrips={setTrips} visited={visited} setVisited={setVisited}/>}
+        </motion.div>
+      </AnimatePresence>
+
+      <footer style={{
+        position:"relative",zIndex:1,
+        borderTop:"1px solid rgba(0,71,187,0.25)",
+        padding:"1rem",textAlign:"center",
+        fontFamily:"'IBM Plex Mono',monospace",fontWeight:500,fontSize:"0.58rem",
+        color:"rgba(214,224,245,0.14)",letterSpacing:"0.12em",textTransform:"uppercase",
+      }}>
+        HaveIRidden? · PATH Train Tracker · Not affiliated with Port Authority of NY &amp; NJ
       </footer>
     </div>
   );
@@ -1570,10 +2847,20 @@ export default function App() {
   return (
     <AnimatePresence mode="wait">
       {!system
-        ? <motion.div key="selector" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}><SystemSelector onSelect={handleSelectSystem}/></motion.div>
+        ? <motion.div key="selector" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}>
+            <SystemSelector onSelect={handleSelectSystem}/>
+          </motion.div>
         : system === "nyc"
-          ? <motion.div key="nyc" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}><NYCApp onSwitchSystem={handleSwitchSystem}/></motion.div>
-          : <motion.div key="dc" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}><DCApp onSwitchSystem={handleSwitchSystem}/></motion.div>}
+          ? <motion.div key="nyc" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}>
+              <NYCApp onSwitchSystem={handleSwitchSystem}/>
+            </motion.div>
+          : system === "dc"
+            ? <motion.div key="dc" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}>
+                <DCApp onSwitchSystem={handleSwitchSystem}/>
+              </motion.div>
+            : <motion.div key="path" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.25}}>
+                <PATHApp onSwitchSystem={handleSwitchSystem}/>
+              </motion.div>}
     </AnimatePresence>
   );
 }
