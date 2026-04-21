@@ -863,9 +863,13 @@ const DC_LINES_DATA = [
 ];
 
 const DC_ROLLING_STOCK = [
-  { model: "7000-Series", builder: "Kawasaki", years: "2014–2023", notes: "Current primary fleet" },
-  { model: "6000-Series", builder: "Rohr", years: "1982–1983", notes: "Retired 2017" },
-  { model: "5000-Series", builder: "Alstom", years: "2001–2004", notes: "Retired 2022" },
+  { model: "1000-Series", builder: "Rohr", years: "1976–1978", notes: "Retired 2017" },
+  { model: "2000-Series", builder: "Breda", years: "1982–1983", notes: "Retired 2018" },
+  { model: "3000-Series", builder: "Breda", years: "1984–1988", notes: "In service (rehabilitated)" },
+  { model: "4000-Series", builder: "Breda", years: "1991–1993", notes: "Retired 2017" },
+  { model: "5000-Series", builder: "CAF", years: "2001–2004", notes: "Retired 2018 (reliability issues)" },
+  { model: "6000-Series", builder: "Alstom", years: "2005–2007", notes: "In service" },
+  { model: "7000-Series", builder: "Kawasaki", years: "2015–2020", notes: "Current primary fleet" },
 ];
 
 const DC_VISITED_KEY = "wmata_visited_v1";
